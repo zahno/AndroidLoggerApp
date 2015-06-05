@@ -1,0 +1,253 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" >
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:paddingTop="20dp" >
+
+        <Switch
+            android:id="@+id/switch_logger_connect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginBottom="20dp"
+            android:gravity="center"
+            android:text="@string/logger_connectToDevice"
+            android:textOff="@string/logger_switchOff"
+            android:textOn="@string/logger_switchOn"
+            android:textSize="14sp" />
+
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="1dp"
+            android:background="@android:color/darker_gray" />
+
+        <LinearLayout
+            android:id="@+id/logger_linLayout_SaveErase"
+            style="?android:attr/buttonBarStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:layout_marginLeft="5dp"
+            android:layout_marginRight="5dp"
+            android:layout_marginTop="20dp" >
+
+            <Button
+                android:id="@+id/btn_logger_saveData"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawableTop="@drawable/download"
+                android:text="@string/logger_saveData"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btn_logger_eraseData"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawableTop="@drawable/erase"
+                android:text="@string/logger_eraseData"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <TableLayout
+            android:id="@+id/logger_tblLayout_LoggerData"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:shrinkColumns="1"
+            android:stretchColumns="1" >
+
+            <TableRow
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start|center"
+                android:minHeight="50dp" >
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/logger_version"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/eT_loggerVersion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingLeft="10dp"
+                    android:paddingRight="10dp"
+                    android:textSize="14sp" />
+            </TableRow>
+
+            <TableRow
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start|center"
+                android:minHeight="50dp" >
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/logger_name"
+                    android:textSize="14sp" />
+
+                <EditText
+                    android:id="@+id/eT_loggerName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ems="10"
+                    android:imeOptions="actionDone"
+                    android:inputType="text"
+                    android:paddingLeft="10dp"
+                    android:paddingRight="10dp"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/btn_logger_setName"
+                    style="?android:attr/buttonStyleSmall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxHeight="45dp"
+                    android:minHeight="45dp"
+                    android:minWidth="60dp"
+                    android:text="@string/set"
+                    android:textSize="14sp" />
+            </TableRow>
+
+            <TableRow
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start|center"
+                android:minHeight="50dp" >
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/logger_samplingint"
+                    android:textSize="14sp" />
+
+                <EditText
+                    android:id="@+id/eT_logger_samplingIntervall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ems="10"
+                    android:imeOptions="actionDone"
+                    android:inputType="number"
+                    android:paddingLeft="10dp"
+                    android:paddingRight="10dp"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/btn_logger_setSamplingInterval"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxHeight="45dp"
+                    android:minHeight="45dp"
+                    android:minWidth="60dp"
+                    android:text="@string/set"
+                    android:textSize="14sp" />
+            </TableRow>
+
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" >
+
+                <TableLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.43"
+                    android:stretchColumns="1" >
+
+                    <TableRow
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="start|center"
+                        android:minHeight="50dp" >
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/logger_currentdate"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/eT_logger_currentDate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingLeft="10dp"
+                            android:paddingRight="10dp"
+                            android:textSize="14sp" />
+                    </TableRow>
+
+                    <TableRow
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="start|center"
+                        android:minHeight="50dp" >
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/logger_dateOfNextFrame"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/eT_logger_dateOfNextFrame"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingLeft="10dp"
+                            android:paddingRight="10dp"
+                            android:textSize="14sp" />
+                    </TableRow>
+
+                    <TableRow
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="start|center"
+                        android:minHeight="50dp" >
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/logger_estimatedNewFrames"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/eT_logger_estimatedNewFrames"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingLeft="10dp"
+                            android:paddingRight="10dp"
+                            android:textSize="14sp" />
+                    </TableRow>
+                </TableLayout>
+
+                <Button
+                    android:id="@+id/btn_syncTime"
+                    style="?android:attr/buttonStyleSmall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="fill_parent"
+                    android:maxHeight="45dp"
+                    android:minHeight="45dp"
+                    android:minWidth="60dp"
+                    android:text="@string/sync"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </TableLayout>
+    </LinearLayout>
+
+</ScrollView>
