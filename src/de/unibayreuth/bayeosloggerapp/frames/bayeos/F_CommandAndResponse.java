@@ -193,6 +193,7 @@ public class F_CommandAndResponse extends Frame {
 		
 	}
 
+	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		switch (frameType) {
@@ -228,7 +229,7 @@ public class F_CommandAndResponse extends Frame {
 			sb.append("Get Time. ");
 			sb.append("Value: ");
 			Integer[] time = (Integer[]) parsePayload(values, Number.Int32); // Integer
-			sb.append(DateAdapter.getDate((long) time[0]));
+			sb.append(DateAdapter.getDate(time[0]));
 			break;
 		case (BayEOS_SetTime):
 			sb.append("Set Time. ");

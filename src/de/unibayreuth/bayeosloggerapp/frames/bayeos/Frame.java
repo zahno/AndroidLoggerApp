@@ -85,7 +85,7 @@ public class Frame {
 		data = new byte[payload.length - 1];
 		for (int i = 0; i < payload.length; i++) {
 			if (i == 0)
-				this.frameType = (byte) payload[i];
+				this.frameType = payload[i];
 			else
 				this.data[i - 1] = payload[i];
 		}

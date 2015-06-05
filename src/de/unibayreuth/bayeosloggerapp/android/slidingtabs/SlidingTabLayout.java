@@ -100,7 +100,7 @@ public class SlidingTabLayout extends HorizontalScrollView {
 				.getDisplayMetrics().density);
 
 		mTabStrip = new SlidingTabStrip(context);
-		addView(mTabStrip, LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
+		addView(mTabStrip, android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
 	}
 
 	/**

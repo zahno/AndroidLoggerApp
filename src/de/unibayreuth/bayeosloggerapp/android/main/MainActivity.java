@@ -19,7 +19,6 @@ import android.view.ViewGroup;
 import com.ftdi.j2xx.D2xxManager;
 import com.ftdi.j2xx.FT_Device;
 
-import de.unibayreuth.bayeosloggerapp.R;
 import de.unibayreuth.bayeosloggerapp.android.slidingtabs.SlidingTabLayout;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.F_CommandAndResponse;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.F_Data;
@@ -176,6 +175,7 @@ public class MainActivity extends FragmentActivity {
 	}
 
 	BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+		@Override
 		public void onReceive(Context context, Intent intent) {
 			String action = intent.getAction();
 			if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {

@@ -13,6 +13,7 @@ public class F_Message extends Frame {
 		this.message = output.toString();
 	}
 
+	@Override
 	public String toString() {
 		String type = "";
 		switch (super.getType()) {

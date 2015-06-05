@@ -25,7 +25,6 @@ import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.LinearLayout.LayoutParams;
 import android.widget.ToggleButton;
-import de.unibayreuth.bayeosloggerapp.R;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.F_Data;
 import de.unibayreuth.bayeosloggerapp.frames.serial.SerialFrame;
 
@@ -79,6 +78,7 @@ public class LiveFragment extends Fragment {
 
 		toggleButton
 				.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+					@Override
 					public void onCheckedChanged(CompoundButton buttonView,
 							boolean isChecked) {
 						if (isChecked) {
@@ -161,7 +161,7 @@ public class LiveFragment extends Fragment {
 
 			// Creating a Time Chart
 
-			GraphicalView mChart = (GraphicalView) ChartFactory
+			GraphicalView mChart = ChartFactory
 					.getTimeChartView(mainActivity, dataset, multiRenderer,
 							"EEE',' dd.MM.yyyy '\nat' HH:mm:ss z");
 

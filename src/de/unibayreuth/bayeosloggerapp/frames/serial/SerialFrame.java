@@ -127,6 +127,7 @@ public class SerialFrame {
 		return s;
 	}
 
+	@Override
 	public String toString() {
 		return "ID: " + id;
 	}
@@ -256,7 +257,7 @@ public class SerialFrame {
 		if (nextByte == FRAME_DELIMITER || nextByte == 0x7d || nextByte == 0x11
 				|| nextByte == 0x13) {
 			serialFrame.add((byte) 0x7d);
-			serialFrame.add((byte) ((byte) nextByte ^ 0x20));
+			serialFrame.add((byte) (nextByte ^ 0x20));
 		} else
 			serialFrame.add(nextByte);
 	}

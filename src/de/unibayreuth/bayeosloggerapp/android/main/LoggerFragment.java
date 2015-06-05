@@ -11,6 +11,7 @@ import java.util.Vector;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -30,7 +31,6 @@ import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TableLayout;
 import android.widget.TextView;
-import de.unibayreuth.bayeosloggerapp.R;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.F_CommandAndResponse;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.Frame;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.Frame.Number;
@@ -155,7 +155,7 @@ public class LoggerFragment extends Fragment {
 								.command_setName(eT_name.getText())));
 
 				InputMethodManager inputMethodManager = (InputMethodManager) mainActivity
-						.getSystemService(Activity.INPUT_METHOD_SERVICE);
+						.getSystemService(Context.INPUT_METHOD_SERVICE);
 				inputMethodManager.hideSoftInputFromWindow(
 						btn_setName.getWindowToken(),
 						InputMethodManager.HIDE_NOT_ALWAYS);
@@ -174,7 +174,7 @@ public class LoggerFragment extends Fragment {
 										.getText())));
 
 				InputMethodManager inputMethodManager = (InputMethodManager) mainActivity
-						.getSystemService(Activity.INPUT_METHOD_SERVICE);
+						.getSystemService(Context.INPUT_METHOD_SERVICE);
 				inputMethodManager.hideSoftInputFromWindow(
 						btn_setSamplingInterval.getWindowToken(),
 						InputMethodManager.HIDE_NOT_ALWAYS);
@@ -214,6 +214,7 @@ public class LoggerFragment extends Fragment {
 				builder.setPositiveButton(
 						R.string.logger_eraseDialogue_confirm,
 						new DialogInterface.OnClickListener() {
+							@Override
 							public void onClick(DialogInterface dialog, int id) {
 
 								mainActivity.addToQueue(SerialFrame
@@ -225,6 +226,7 @@ public class LoggerFragment extends Fragment {
 						});
 				builder.setNegativeButton(R.string.logger_eraseDialogue_cancel,
 						new DialogInterface.OnClickListener() {
+							@Override
 							public void onClick(DialogInterface dialog, int id) {
 								// User cancelled the dialog
 								// nothing happens
@@ -326,9 +328,9 @@ public class LoggerFragment extends Fragment {
 
 	public void handle_GetTime(F_CommandAndResponse receivedFrame) {
 		Integer[] time = (Integer[]) Frame.parsePayload(
-				((F_CommandAndResponse) receivedFrame).getValues(),
+				receivedFrame.getValues(),
 				Number.Int32); // Integer
-		currentDate = DateAdapter.getDate((long) time[0]);
+		currentDate = DateAdapter.getDate(time[0]);
 		eT_currentDate.setText(new SimpleDateFormat(
 				"EEE',' dd.MM.yyyy 'at' HH:mm:ss z", Locale.US)
 				.format(currentDate));
@@ -336,13 +338,13 @@ public class LoggerFragment extends Fragment {
 
 	public void handle_GetName(F_CommandAndResponse receivedFrame) {
 		eT_name.setText(StringTools
-				.asciiToString(((F_CommandAndResponse) receivedFrame)
+				.asciiToString(receivedFrame
 						.getValues()));
 	}
 
 	public void handle_SetName(F_CommandAndResponse receivedFrame) {
 		String name = StringTools
-				.asciiToString(((F_CommandAndResponse) receivedFrame)
+				.asciiToString(receivedFrame
 						.getValues());
 		ToastMessage
 				.toastSuccess(mainActivity, "Set name to \"" + name + "\".");
@@ -350,13 +352,13 @@ public class LoggerFragment extends Fragment {
 
 	public void handle_GetVersion(F_CommandAndResponse receivedFrame) {
 		eT_version.setText(StringTools
-				.asciiToString(((F_CommandAndResponse) receivedFrame)
+				.asciiToString(receivedFrame
 						.getValues()));
 	}
 
 	public void handle_GetSamplingInterval(F_CommandAndResponse receivedFrame) {
 		Short[] samplingInterval = (Short[]) Frame.parsePayload(
-				((F_CommandAndResponse) receivedFrame).getValues(),
+				receivedFrame.getValues(),
 				Number.Int16); // Integer
 
 		eT_samplingInt.setText(StringTools.arrayToString(samplingInterval));
@@ -364,7 +366,7 @@ public class LoggerFragment extends Fragment {
 
 	public void handle_SetSamplingInterval(F_CommandAndResponse receivedFrame) {
 		short setSamplingInt = ((Short[]) Frame.parsePayload(
-				((F_CommandAndResponse) receivedFrame).getValues(),
+				receivedFrame.getValues(),
 				Number.Int16))[0];
 		ToastMessage.toastSuccess(mainActivity, "Set Sampling Interval to "
 				+ setSamplingInt + " seconds.");
@@ -373,9 +375,9 @@ public class LoggerFragment extends Fragment {
 
 	public void handle_TimeOfNextFrame(F_CommandAndResponse receivedFrame) {
 		Integer[] timeOfNextFrame = (Integer[]) Frame.parsePayload(
-				((F_CommandAndResponse) receivedFrame).getValues(),
+				receivedFrame.getValues(),
 				Number.Int32); // Integer
-		dateOfNextFrame = DateAdapter.getDate((long) timeOfNextFrame[0]);
+		dateOfNextFrame = DateAdapter.getDate(timeOfNextFrame[0]);
 
 		if (!dateOfNextFrame.equals(noNewFramesDate))
 			eT_dateofNextFrame.setText(new SimpleDateFormat(
@@ -388,7 +390,7 @@ public class LoggerFragment extends Fragment {
 
 	public void handle_StartBinaryDump(F_CommandAndResponse receivedFrame) {
 		binaryDump_NumberOfBytes = ((Long[]) Frame.parsePayload(
-				((F_CommandAndResponse) receivedFrame).getValues(),
+				receivedFrame.getValues(),
 				Number.UInt32))[0]; // Integer
 		Log.i(TAG, "Number of Bytes: " + binaryDump_NumberOfBytes);
 
@@ -429,7 +431,7 @@ public class LoggerFragment extends Fragment {
 		// Log.i(TAG, "getReadPosition");
 
 		readPosition = ((Integer[]) Frame.parsePayload(
-				((F_CommandAndResponse) receivedFrame).getValues(),
+				receivedFrame.getValues(),
 				Number.Int32))[0]; // Integer
 		if (readPosition != null) {
 
