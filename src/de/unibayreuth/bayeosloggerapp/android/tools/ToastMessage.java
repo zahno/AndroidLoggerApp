@@ -1,4 +1,4 @@
-package de.unibayreuth.bayeosloggerapp.tools;
+package de.unibayreuth.bayeosloggerapp.android.tools;
 
 import de.unibayreuth.bayeosloggerapp.android.main.MainActivity;
 import android.view.Gravity;

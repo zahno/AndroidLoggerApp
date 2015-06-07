@@ -22,5 +22,13 @@
     <string name="logger_eraseDialogue_eraseFramesTitle">Erase Logger Data</string>
     <string name="live_toggleStartLiveData">Start Live Data</string>
     <string name="live_toggleStopLiveData">Stop Live Data</string>
+    <string name="dump_tbl_name">Name</string>
+    <string name="dump_tbl_start">Start</string>
+    <string name="dump_tbl_end">End</string>
+    <string name="dump_tbl_records">Records</string>
+    <string name="dumps_refresh">Refresh</string>
+    <string name="dumps_parseData">Parse Data</string>
+    <string name="dumps_selectAll">Select All</string>
+    <string name="dumps_deselectAll">Deselect All</string>
 
 </resources>

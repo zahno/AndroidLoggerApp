@@ -6,7 +6,7 @@ import java.nio.ByteOrder;
 import de.unibayreuth.bayeosloggerapp.tools.DateAdapter;
 import de.unibayreuth.bayeosloggerapp.tools.StringTools;
 
-public class F_CommandAndResponse extends Frame {
+public class CommandAndResponseFrame extends Frame {
 
 	// Frame Type
 	public static final byte frameType_Command = 0x2;
@@ -62,7 +62,7 @@ public class F_CommandAndResponse extends Frame {
 	byte commandType;
 	byte[] values;
 
-	public F_CommandAndResponse(byte[] payload) {
+	public CommandAndResponseFrame(byte[] payload) {
 		super(payload);
 		this.frameType = payload[0];
 		this.commandType = payload[1];
@@ -72,28 +72,28 @@ public class F_CommandAndResponse extends Frame {
 		}
 	}
 
-	public static F_CommandAndResponse command_getVersion() {
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+	public static CommandAndResponseFrame command_getVersion() {
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_GetVersion });
 	}
 
 	public static Frame command_getName() {
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_GetName });
 	}
 
 	public static Frame command_getSamplingInterval() {
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_GetSamplingInt });
 	}
 
 	public static Frame command_getTime() {
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_GetTime });
 	}
 
 	public static Frame command_getTimeOfNextFrame() {
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_TimeOfNextFrame });
 	}
 
@@ -104,7 +104,7 @@ public class F_CommandAndResponse extends Frame {
 		for (int i = 0; i < name.length(); i++) {
 			arg[i + 2] = (byte) name.charAt(i);
 		}
-		return new F_CommandAndResponse(arg);
+		return new CommandAndResponseFrame(arg);
 	}
 
 	public static Frame command_setSamplingInterval(
@@ -123,50 +123,50 @@ public class F_CommandAndResponse extends Frame {
 		for (int i = 0; i < bytes.length; i++) {
 			arg[i + 2] = bytes[i];
 		}
-		return new F_CommandAndResponse(arg);
+		return new CommandAndResponseFrame(arg);
 	}
 
 	public static Frame command_BufferCommand_saveCurrentReadPointerPositionToEEPROM() {
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_BufferCommand,
 				BayEOS_BufferCommand_SaveCurrentReadPointerToEEPROM });
 	}
 
 	public static Frame command_BufferCommand_erase() {
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_BufferCommand, BayEOS_BufferCommand_Erase });
 	}
 
 	public static Frame command_BufferCommand_setReadPointerToLastEEPROMPosition() {
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_BufferCommand,
 				BayEOS_BufferCommand_SetReadPointerToLastEEPROMPosition });
 	}
 
 	public static Frame command_BufferCommand_SetReadPointerToWritePointer() {
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_BufferCommand,
 				BayEOS_BufferCommand_SetReadPointerToWritePointer });
 	}
 
 	public static Frame command_BufferCommand_SetReadPointerToEndPositionOfBinaryDump() {
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_BufferCommand,
 				BayEOS_BufferCommand_SetReadPointerToEndPositionOfBinaryDump });
 	}
 
 	public static Frame command_BufferCommand_getReadPosition() {
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_BufferCommand, BayEOS_BufferCommand_GetReadPosition });
 	}
 
 	public static Frame command_BufferCommand_getWritePosition() {
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_BufferCommand, BayEOS_BufferCommand_GetWritePosition });
 	}
 
 	public static Frame command_modeStop() {
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_ModeStop });
 	}
 
@@ -183,12 +183,12 @@ public class F_CommandAndResponse extends Frame {
 			arg[i + 2] = bytes[i];
 		}
 
-		return new F_CommandAndResponse(arg);
+		return new CommandAndResponseFrame(arg);
 	}
 	
 	
 	public static Frame command_startLiveData(){
-		return new F_CommandAndResponse(new byte[] { frameType_Command,
+		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_StartLiveData });
 		
 	}

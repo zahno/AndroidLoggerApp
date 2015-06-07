@@ -31,7 +31,8 @@ import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TableLayout;
 import android.widget.TextView;
-import de.unibayreuth.bayeosloggerapp.frames.bayeos.F_CommandAndResponse;
+import de.unibayreuth.bayeosloggerapp.android.tools.ToastMessage;
+import de.unibayreuth.bayeosloggerapp.frames.bayeos.CommandAndResponseFrame;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.Frame;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.Frame.Number;
 import de.unibayreuth.bayeosloggerapp.frames.serial.Bulk;
@@ -39,7 +40,6 @@ import de.unibayreuth.bayeosloggerapp.frames.serial.SerialFrame;
 import de.unibayreuth.bayeosloggerapp.tools.DateAdapter;
 import de.unibayreuth.bayeosloggerapp.tools.NumberConverter;
 import de.unibayreuth.bayeosloggerapp.tools.StringTools;
-import de.unibayreuth.bayeosloggerapp.tools.ToastMessage;
 
 public class LoggerFragment extends Fragment {
 
@@ -151,7 +151,7 @@ public class LoggerFragment extends Fragment {
 			public void onClick(View v) {
 
 				mainActivity.addToQueue(SerialFrame
-						.toSerialFrame(F_CommandAndResponse
+						.toSerialFrame(CommandAndResponseFrame
 								.command_setName(eT_name.getText())));
 
 				InputMethodManager inputMethodManager = (InputMethodManager) mainActivity
@@ -169,7 +169,7 @@ public class LoggerFragment extends Fragment {
 			@Override
 			public void onClick(View v) {
 				mainActivity.addToQueue(SerialFrame
-						.toSerialFrame(F_CommandAndResponse
+						.toSerialFrame(CommandAndResponseFrame
 								.command_setSamplingInterval(eT_samplingInt
 										.getText())));
 
@@ -198,7 +198,7 @@ public class LoggerFragment extends Fragment {
 			public void onClick(View v) {
 				mainActivity.addToQueue(SerialFrame.getReadPosition);
 				mainActivity
-						.setBufferCommand(F_CommandAndResponse.BayEOS_BufferCommand_GetReadPosition);
+						.setBufferCommand(CommandAndResponseFrame.BayEOS_BufferCommand_GetReadPosition);
 
 			}
 		});
@@ -218,10 +218,10 @@ public class LoggerFragment extends Fragment {
 							public void onClick(DialogInterface dialog, int id) {
 
 								mainActivity.addToQueue(SerialFrame
-										.toSerialFrame(F_CommandAndResponse
+										.toSerialFrame(CommandAndResponseFrame
 												.command_BufferCommand_erase()));
 								mainActivity
-										.setBufferCommand(F_CommandAndResponse.BayEOS_BufferCommand_Erase);
+										.setBufferCommand(CommandAndResponseFrame.BayEOS_BufferCommand_Erase);
 							}
 						});
 				builder.setNegativeButton(R.string.logger_eraseDialogue_cancel,
@@ -261,17 +261,19 @@ public class LoggerFragment extends Fragment {
 
 		binaryDump.addAll(bulk);
 
-		Log.i(TAG, "binaryDump size: " + binaryDump.size() + ", should be "
-				+ binaryDump_NumberOfBytes);
-
 		binaryDumpProgress.incrementProgressBy(bulkFrame.getLength() - 5);
+
 		if (binaryDumpProgress.getProgress() == binaryDump_NumberOfBytes) {
+			Log.i(TAG, "Dump finished. No. Bytes: " + binaryDump.size()
+					+ " (expected " + binaryDump_NumberOfBytes + " Bytes)");
+
 			mainActivity
-					.setBufferCommand(F_CommandAndResponse.BayEOS_BufferCommand_SetReadPointerToEndPositionOfBinaryDump);
+					.setBufferCommand(CommandAndResponseFrame.BayEOS_BufferCommand_SetReadPointerToEndPositionOfBinaryDump);
 			mainActivity
 					.addToQueue(SerialFrame.setReadPointerToEndPositionOfBinaryDump);
 
 			binaryDumpProgress.dismiss();
+			updateTime();
 			saveBulk();
 		}
 
@@ -280,9 +282,16 @@ public class LoggerFragment extends Fragment {
 	private void saveBulk() {
 		byte[] binaryDumpArray = new byte[binaryDump.size()];
 		for (int i = 0; i < binaryDump.size(); i++) {
-			binaryDumpArray[i] = binaryDump.get(i);
+			binaryDumpArray[i] = (byte) (binaryDump.get(i) & 0xff);
 		}
-		new SaveBulkTask().execute(binaryDumpArray);
+
+		new SaveRawDumpTask() {
+			@Override
+			protected void onPreExecute() {
+				this.name = eT_name.getText().toString();
+				this.directoryName = MainActivity.DirectoryNameRaw;
+			};
+		}.execute(binaryDumpArray);
 	}
 
 	protected void setEstimatedNewFrames() {
@@ -326,57 +335,48 @@ public class LoggerFragment extends Fragment {
 		this.interruptDump = interruptDump;
 	}
 
-	public void handle_GetTime(F_CommandAndResponse receivedFrame) {
+	public void handle_GetTime(CommandAndResponseFrame receivedFrame) {
 		Integer[] time = (Integer[]) Frame.parsePayload(
-				receivedFrame.getValues(),
-				Number.Int32); // Integer
+				receivedFrame.getValues(), Number.Int32); // Integer
 		currentDate = DateAdapter.getDate(time[0]);
 		eT_currentDate.setText(new SimpleDateFormat(
 				"EEE',' dd.MM.yyyy 'at' HH:mm:ss z", Locale.US)
 				.format(currentDate));
 	}
 
-	public void handle_GetName(F_CommandAndResponse receivedFrame) {
-		eT_name.setText(StringTools
-				.asciiToString(receivedFrame
-						.getValues()));
+	public void handle_GetName(CommandAndResponseFrame receivedFrame) {
+		eT_name.setText(StringTools.asciiToString(receivedFrame.getValues()));
 	}
 
-	public void handle_SetName(F_CommandAndResponse receivedFrame) {
-		String name = StringTools
-				.asciiToString(receivedFrame
-						.getValues());
+	public void handle_SetName(CommandAndResponseFrame receivedFrame) {
+		String name = StringTools.asciiToString(receivedFrame.getValues());
 		ToastMessage
 				.toastSuccess(mainActivity, "Set name to \"" + name + "\".");
 	}
 
-	public void handle_GetVersion(F_CommandAndResponse receivedFrame) {
-		eT_version.setText(StringTools
-				.asciiToString(receivedFrame
-						.getValues()));
+	public void handle_GetVersion(CommandAndResponseFrame receivedFrame) {
+		eT_version
+				.setText(StringTools.asciiToString(receivedFrame.getValues()));
 	}
 
-	public void handle_GetSamplingInterval(F_CommandAndResponse receivedFrame) {
+	public void handle_GetSamplingInterval(CommandAndResponseFrame receivedFrame) {
 		Short[] samplingInterval = (Short[]) Frame.parsePayload(
-				receivedFrame.getValues(),
-				Number.Int16); // Integer
+				receivedFrame.getValues(), Number.Int16); // Integer
 
 		eT_samplingInt.setText(StringTools.arrayToString(samplingInterval));
 	}
 
-	public void handle_SetSamplingInterval(F_CommandAndResponse receivedFrame) {
+	public void handle_SetSamplingInterval(CommandAndResponseFrame receivedFrame) {
 		short setSamplingInt = ((Short[]) Frame.parsePayload(
-				receivedFrame.getValues(),
-				Number.Int16))[0];
+				receivedFrame.getValues(), Number.Int16))[0];
 		ToastMessage.toastSuccess(mainActivity, "Set Sampling Interval to "
 				+ setSamplingInt + " seconds.");
 		updateTime();
 	}
 
-	public void handle_TimeOfNextFrame(F_CommandAndResponse receivedFrame) {
+	public void handle_TimeOfNextFrame(CommandAndResponseFrame receivedFrame) {
 		Integer[] timeOfNextFrame = (Integer[]) Frame.parsePayload(
-				receivedFrame.getValues(),
-				Number.Int32); // Integer
+				receivedFrame.getValues(), Number.Int32); // Integer
 		dateOfNextFrame = DateAdapter.getDate(timeOfNextFrame[0]);
 
 		if (!dateOfNextFrame.equals(noNewFramesDate))
@@ -388,10 +388,9 @@ public class LoggerFragment extends Fragment {
 		setEstimatedNewFrames();
 	}
 
-	public void handle_StartBinaryDump(F_CommandAndResponse receivedFrame) {
+	public void handle_StartBinaryDump(CommandAndResponseFrame receivedFrame) {
 		binaryDump_NumberOfBytes = ((Long[]) Frame.parsePayload(
-				receivedFrame.getValues(),
-				Number.UInt32))[0]; // Integer
+				receivedFrame.getValues(), Number.UInt32))[0]; // Integer
 		Log.i(TAG, "Number of Bytes: " + binaryDump_NumberOfBytes);
 
 		binaryDump = new Vector<>((int) binaryDump_NumberOfBytes);
@@ -400,7 +399,7 @@ public class LoggerFragment extends Fragment {
 		binaryDumpProgress = new ProgressDialog(mainActivity);
 		binaryDumpProgress.setMax((int) binaryDump_NumberOfBytes);
 
-		binaryDumpProgress.setMessage("Downloading Data..");
+		binaryDumpProgress.setTitle("Downloading Data..");
 		binaryDumpProgress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
 		binaryDumpProgress.setIndeterminate(false);
 
@@ -415,9 +414,6 @@ public class LoggerFragment extends Fragment {
 				});
 
 		binaryDumpProgress.show();
-
-		updateTime();
-
 	}
 
 	public void updateTime() {
@@ -427,28 +423,28 @@ public class LoggerFragment extends Fragment {
 	}
 
 	public void handle_BuferCommand_GetReadPosition(
-			F_CommandAndResponse receivedFrame) {
+			CommandAndResponseFrame receivedFrame) {
 		// Log.i(TAG, "getReadPosition");
 
 		readPosition = ((Integer[]) Frame.parsePayload(
-				receivedFrame.getValues(),
-				Number.Int32))[0]; // Integer
+				receivedFrame.getValues(), Number.Int32))[0]; // Integer
 		if (readPosition != null) {
 
 			mainActivity.addToQueue(SerialFrame
-					.toSerialFrame(F_CommandAndResponse
+					.toSerialFrame(CommandAndResponseFrame
 							.command_startBinaryDump(readPosition)));
 
 		}
 	}
 }
 
-class SaveBulkTask extends AsyncTask<byte[], String, String> {
-
-	String directoryName = "BayEOS_Logger";
+class SaveRawDumpTask extends AsyncTask<byte[], String, String> {
+	String directoryName;
+	String name;
 
 	@Override
-	protected String doInBackground(byte[]... bulkArray) {
+	protected String doInBackground(byte[]... bulkData) {
+
 		if (!isExternalStorageWritable()) {
 			Log.e("SaveBulk", "Storage not writable!");
 			return null;
@@ -463,8 +459,8 @@ class SaveBulkTask extends AsyncTask<byte[], String, String> {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
 		Date date = new Date();
 
-		File bulk = new File(rootPath, "Bulk_" + dateFormat.format(date)
-				+ ".db");
+		File bulk = new File(rootPath, "Dump_" + name + "_"
+				+ dateFormat.format(date) + ".db");
 
 		if (bulk.exists()) {
 			bulk.delete();
@@ -473,8 +469,9 @@ class SaveBulkTask extends AsyncTask<byte[], String, String> {
 		try {
 			FileOutputStream fos = new FileOutputStream(bulk.getPath());
 
-			fos.write(bulkArray[0]);
+			fos.write(bulkData[0]);
 			fos.close();
+
 		} catch (java.io.IOException e) {
 			Log.e("SaveBulkTask", "Exception in writing a file", e);
 		}

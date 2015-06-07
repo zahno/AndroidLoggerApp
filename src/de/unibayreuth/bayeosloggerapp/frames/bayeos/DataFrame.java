@@ -1,21 +1,25 @@
 package de.unibayreuth.bayeosloggerapp.frames.bayeos;
 
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Hashtable;
 
+import android.util.Log;
 import de.unibayreuth.bayeosloggerapp.tools.NumberConverter;
 
-public class F_Data extends Frame {
+public class DataFrame extends Frame {
 
-	byte dataFrameType;
-	Frame.Number valueType;
-	Hashtable<Short, Float> values;
+	public static final String TAG = "DataFrame";
+	
+	private byte dataFrameType;
+	private Frame.Number valueType;
+	private Hashtable<Short, Float> values;
 
-	public F_Data(byte[] payload) {
+	public DataFrame(byte[] payload) {
 
 		super(payload);
-
+		try{
 		ByteBuffer bf_payload = ByteBuffer.wrap(payload);
 		bf_payload.order(ByteOrder.LITTLE_ENDIAN);
 
@@ -40,7 +44,6 @@ public class F_Data extends Frame {
 					.getByteRepresentation()))
 			System.out.println("Unknown Data Frame Type");
 
-		// TODO how big can channel be?
 		short channel = 0;
 		if (dm == DATAFRAME_WITH_CHANNEL_OFFSET) {
 			// third byte of payload
@@ -59,28 +62,16 @@ public class F_Data extends Frame {
 			} else {
 				channel++;
 			}
-			// Read Value
 
 			values.put(channel,
 					(Float) NumberConverter.getNumber(bf_payload, type));
-			// switch (vm) {
-			// case (VALUETYPE_FLOAT32): // Float
-			// values.put(channel, bf_payload.getFloat());
-			// break;
-			// case (VALUETYPE_INT32): // Integer
-			// values.put(channel, (float) bf_payload.getInt());
-			// break;
-			// case (VALUETYPE_INT16): // Short
-			// values.put(channel, (float) bf_payload.getShort());
-			// break;
-			// case (VALUETYPE_UINT8): // UInt8
-			// values.put(channel, (float) (bf_payload.get() & 0xff));
-			// break;
-			// }
 		}
 		this.values = values;
 		this.valueType = type;
-		this.dataFrameType = dm;
+		this.dataFrameType = dm;}
+		catch(BufferUnderflowException e){
+			Log.e(TAG, "Buffer Underflow Exception");
+		}
 	}
 
 	@Override

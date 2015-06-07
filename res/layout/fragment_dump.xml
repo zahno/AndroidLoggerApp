@@ -3,4 +3,127 @@
     android:layout_height="fill_parent"
     android:orientation="vertical" >
 
+    <LinearLayout
+        style="?android:attr/buttonBarStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="5dp"
+        android:layout_marginLeft="5dp"
+        android:layout_marginRight="5dp"
+        android:layout_marginTop="5dp" >
+
+        <Button
+            android:id="@+id/dumps_btn_refresh"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/dumps_refresh"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/dumps_btn_parse"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/dumps_parseData"
+            android:textSize="14sp" />
+
+        <View android:layout_width="0dp" android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/dumps_selectAll"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/dumps_selectAll"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical" >
+
+        <TableLayout
+            android:id="@+id/table2"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:layout_marginTop="10dp"
+            android:stretchColumns="*" >
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" >
+
+                <TextView
+                    android:id="@+id/dumps_tv_name"
+                    android:layout_width="0dp"
+                    android:background="@drawable/cell_head_shape"
+                    android:gravity="center"
+                    android:text="@string/dump_tbl_name"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/dumps_tv_start"
+                    android:layout_width="0dp"
+                    android:background="@drawable/cell_head_shape"
+                    android:gravity="center"
+                    android:text="@string/dump_tbl_start"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/dumps_tv_end"
+                    android:layout_width="0dp"
+                    android:background="@drawable/cell_head_shape"
+                    android:gravity="center"
+                    android:text="@string/dump_tbl_end"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/dumps_tv_records"
+                    android:layout_width="0dp"
+                    android:background="@drawable/cell_head_shape"
+                    android:gravity="center"
+                    android:text="@string/dump_tbl_records"
+                    android:textStyle="bold" />
+            </TableRow>
+        </TableLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="fill_parent"
+            android:fadeScrollbars="false" >
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" >
+
+                <TableLayout
+                    android:id="@+id/dumps_tbllayout_data"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:layout_marginBottom="5dp"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="11dp"
+                    android:stretchColumns="*" >
+                </TableLayout>
+            </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:orientation="vertical" >
+    </LinearLayout>
+
 </LinearLayout>

@@ -2,39 +2,39 @@ package de.unibayreuth.bayeosloggerapp.frames.serial;
 
 import java.util.Vector;
 
-import de.unibayreuth.bayeosloggerapp.frames.bayeos.F_CommandAndResponse;
+import de.unibayreuth.bayeosloggerapp.frames.bayeos.CommandAndResponseFrame;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.Frame;
 
 public class SerialFrame {
 
 	public static final byte[] setReadPointerToEndPositionOfBinaryDump = SerialFrame
-			.toSerialFrame(F_CommandAndResponse
+			.toSerialFrame(CommandAndResponseFrame
 					.command_BufferCommand_SetReadPointerToEndPositionOfBinaryDump());
 
 	public static final byte[] modeStop = SerialFrame
-			.toSerialFrame(F_CommandAndResponse.command_modeStop());
+			.toSerialFrame(CommandAndResponseFrame.command_modeStop());
 
 	public static final byte[] getTime = SerialFrame
-			.toSerialFrame(F_CommandAndResponse.command_getTime());
+			.toSerialFrame(CommandAndResponseFrame.command_getTime());
 
 	public static final byte[] getTimeOfNextFrame = SerialFrame
-			.toSerialFrame(F_CommandAndResponse.command_getTimeOfNextFrame());
+			.toSerialFrame(CommandAndResponseFrame.command_getTimeOfNextFrame());
 
 	public static final byte[] getReadPosition = SerialFrame
-			.toSerialFrame(F_CommandAndResponse
+			.toSerialFrame(CommandAndResponseFrame
 					.command_BufferCommand_getReadPosition());
 
 	public static final byte[] getName = SerialFrame
-			.toSerialFrame(F_CommandAndResponse.command_getName());
+			.toSerialFrame(CommandAndResponseFrame.command_getName());
 
 	public static final byte[] getVersion = SerialFrame
-			.toSerialFrame(F_CommandAndResponse.command_getVersion());
+			.toSerialFrame(CommandAndResponseFrame.command_getVersion());
 
 	public static final byte[] getSamplingInterval = SerialFrame
-			.toSerialFrame(F_CommandAndResponse.command_getSamplingInterval());
+			.toSerialFrame(CommandAndResponseFrame.command_getSamplingInterval());
 
 	public static final byte[] startLiveData = SerialFrame
-			.toSerialFrame(F_CommandAndResponse.command_startLiveData());
+			.toSerialFrame(CommandAndResponseFrame.command_startLiveData());
 
 	
 	public static final byte FRAME_DELIMITER = 0x7E;

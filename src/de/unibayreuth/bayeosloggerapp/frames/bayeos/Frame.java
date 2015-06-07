@@ -2,9 +2,11 @@ package de.unibayreuth.bayeosloggerapp.frames.bayeos;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Date;
 import java.util.Vector;
 
 import de.unibayreuth.bayeosloggerapp.frames.serial.SerialFrame;
+import de.unibayreuth.bayeosloggerapp.tools.DateAdapter;
 import de.unibayreuth.bayeosloggerapp.tools.NumberConverter;
 
 public class Frame {
@@ -108,17 +110,17 @@ public class Frame {
 		byte frameType = payload[0];
 		switch (frameType) {
 		case FRAMETYPE_DATAFRAME:
-			return new F_Data(payload);
+			return new DataFrame(payload);
 
 			//  Command and Response
 		case FRAMETYPE_COMMAND:
 		case FRAMETYPE_COMMAND_RESPONSE:
-			return new F_CommandAndResponse(payload);
+			return new CommandAndResponseFrame(payload);
 
 			// Message and Error Message
 		case FRAMETYPE_MESSAGE:
 		case FRAMETYPE_ERROR_MESSAGE:
-			return new F_Message(payload);
+			return new MessageFrame(payload);
 
 			// TODO not implemented yet
 		case FRAMETYPE_ROUTED_FRAME:
@@ -165,6 +167,7 @@ public class Frame {
 		}
 		return values;
 	}
+
 
 	public byte[] getData() {
 		return data;

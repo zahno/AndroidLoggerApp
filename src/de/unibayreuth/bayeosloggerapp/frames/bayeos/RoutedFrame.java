@@ -3,12 +3,12 @@ package de.unibayreuth.bayeosloggerapp.frames.bayeos;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-public class F_Routed extends Frame {
+public class RoutedFrame extends Frame {
 
 	short myId;
 	short panId;
 	
-	public F_Routed(byte[] payload) {
+	public RoutedFrame(byte[] payload) {
 		super(payload);
 
 		ByteBuffer bf_payload = ByteBuffer.wrap(payload);

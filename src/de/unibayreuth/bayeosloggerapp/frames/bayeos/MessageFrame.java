@@ -1,10 +1,10 @@
 package de.unibayreuth.bayeosloggerapp.frames.bayeos;
 
-public class F_Message extends Frame {
+public class MessageFrame extends Frame {
 
 	String message;
 
-	public F_Message(byte[] f) {
+	public MessageFrame(byte[] f) {
 		super(f);
 		StringBuilder output = new StringBuilder();
 		for (byte s : f) {

@@ -20,12 +20,12 @@ import com.ftdi.j2xx.D2xxManager;
 import com.ftdi.j2xx.FT_Device;
 
 import de.unibayreuth.bayeosloggerapp.android.slidingtabs.SlidingTabLayout;
-import de.unibayreuth.bayeosloggerapp.frames.bayeos.F_CommandAndResponse;
-import de.unibayreuth.bayeosloggerapp.frames.bayeos.F_Data;
+import de.unibayreuth.bayeosloggerapp.android.tools.ToastMessage;
+import de.unibayreuth.bayeosloggerapp.frames.bayeos.CommandAndResponseFrame;
+import de.unibayreuth.bayeosloggerapp.frames.bayeos.DataFrame;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.Frame;
 import de.unibayreuth.bayeosloggerapp.frames.serial.Bulk;
 import de.unibayreuth.bayeosloggerapp.frames.serial.SerialFrame;
-import de.unibayreuth.bayeosloggerapp.tools.ToastMessage;
 import de.unibayreuth.bayeosloggerapp.tools.Tuple;
 
 public class MainActivity extends FragmentActivity {
@@ -48,6 +48,9 @@ public class MainActivity extends FragmentActivity {
 	private Byte bufferCommand = null;
 
 	Handler mHandler = new Handler();
+
+	public static final String DirectoryNameRaw = "BayEOS_Logger//Raw_Dumps";
+	public static final String DirectoryNameParsed = "BayEOS_Logger//Parsed_Dumps";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -78,6 +81,32 @@ public class MainActivity extends FragmentActivity {
 		// Center the tabs in the layout
 		slidingTabLayout.setDistributeEvenly(true);
 		slidingTabLayout.setViewPager(viewPager);
+
+		slidingTabLayout
+				.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+					@Override
+					public void onPageScrolled(int position,
+							float positionOffset, int positionOffsetPixels) {
+						// Do nothing
+					}
+
+					@Override
+					public void onPageSelected(int position) {
+						if (position == 0) {
+							if (ftDev != null && ftDev.isOpen())
+								loggerFragment.updateTime();
+						} else if (position == 1) {
+							dumpsFragment.refreshTable();
+						} else if (position == 2) {
+							// Whenever third fragment is visible, do something
+						}
+					}
+
+					@Override
+					public void onPageScrollStateChanged(int state) {
+						// Do nothing
+					}
+				});
 
 	}
 
@@ -216,9 +245,10 @@ public class MainActivity extends FragmentActivity {
 				synchronized (ftDev) {
 					if (loggerFragment.dumpInterrupted()) {
 						Log.e(TAG, "Dump interrupted");
-						ftDev.write(SerialFrame.modeStop);
-						loggerFragment.setDumpInterrupted(false);
-						continue;
+						if (ftDev.write(SerialFrame.modeStop) != SerialFrame.modeStop.length) {
+							Log.e(TAG,
+									"Dump Interrupted: couldnt write whole frame to device!");
+						}
 					}
 
 					// Frame Delimiter
@@ -262,15 +292,15 @@ public class MainActivity extends FragmentActivity {
 						payload[i] = readByte(escaped).getSecond();
 					}
 
-					// StringBuilder sb = new StringBuilder();
-					// sb.append("Payload: [");
-					// sb.append(String.format("%02X", payload[0]));
-					// for (int i = 1; i < length; i++) {
-					// sb.append(", ");
-					// sb.append(String.format("%02X", payload[i]));
-					// }
-					// sb.append("]");
-					// Log.i(TAG, sb.toString());
+//					StringBuilder sb = new StringBuilder();
+//					sb.append("Payload: [");
+//					sb.append(String.format("%02X", payload[0]));
+//					for (int i = 1; i < length; i++) {
+//						sb.append(", ");
+//						sb.append(String.format("%02X", payload[i]));
+//					}
+//					sb.append("]");
+//					Log.i(TAG, sb.toString());
 
 					byte checksum = readByte(escaped).getSecond();
 
@@ -318,7 +348,7 @@ public class MainActivity extends FragmentActivity {
 
 		if (serialFrame instanceof Bulk) {
 			loggerFragment.handleBulk((Bulk) serialFrame);
-			Log.i(TAG, serialFrame.toString());
+//			Log.i(TAG, serialFrame.toString());
 		} else
 			handlePayload(serialFrame.getPayload());
 	}
@@ -331,95 +361,97 @@ public class MainActivity extends FragmentActivity {
 
 			@Override
 			public void run() {
-				if (receivedFrame instanceof F_Data) {
-					liveFragment.handle_DataFrame((F_Data) receivedFrame);
+				if (receivedFrame instanceof DataFrame) {
+					liveFragment.handle_DataFrame((DataFrame) receivedFrame);
 				}
-				if (receivedFrame instanceof F_CommandAndResponse) {
-					switch (((F_CommandAndResponse) receivedFrame)
+				if (receivedFrame instanceof CommandAndResponseFrame) {
+					switch (((CommandAndResponseFrame) receivedFrame)
 							.getCommandType()) {
-					case (F_CommandAndResponse.BayEOS_SetCannelAddress):
+					case (CommandAndResponseFrame.BayEOS_SetCannelAddress):
 						break;
-					case (F_CommandAndResponse.BayEOS_GetCannelAddress):
+					case (CommandAndResponseFrame.BayEOS_GetCannelAddress):
 						break;
-					case (F_CommandAndResponse.BayEOS_SetAutoSearch):
+					case (CommandAndResponseFrame.BayEOS_SetAutoSearch):
 						break;
-					case (F_CommandAndResponse.BayEOS_GetAutoSearch):
+					case (CommandAndResponseFrame.BayEOS_GetAutoSearch):
 						break;
-					case (F_CommandAndResponse.BayEOS_SetPin):
+					case (CommandAndResponseFrame.BayEOS_SetPin):
 						break;
-					case (F_CommandAndResponse.BayEOS_GetPin):
+					case (CommandAndResponseFrame.BayEOS_GetPin):
 						break;
-					case (F_CommandAndResponse.BayEOS_GetTime):
+					case (CommandAndResponseFrame.BayEOS_GetTime):
 						loggerFragment
-								.handle_GetTime((F_CommandAndResponse) receivedFrame);
+								.handle_GetTime((CommandAndResponseFrame) receivedFrame);
 						break;
-					case (F_CommandAndResponse.BayEOS_SetTime):
+					case (CommandAndResponseFrame.BayEOS_SetTime):
 						break;
-					case (F_CommandAndResponse.BayEOS_GetName):
+					case (CommandAndResponseFrame.BayEOS_GetName):
 						loggerFragment
-								.handle_GetName((F_CommandAndResponse) receivedFrame);
+								.handle_GetName((CommandAndResponseFrame) receivedFrame);
 
 						break;
-					case (F_CommandAndResponse.BayEOS_SetName):
+					case (CommandAndResponseFrame.BayEOS_SetName):
 						loggerFragment
-								.handle_SetName((F_CommandAndResponse) receivedFrame);
+								.handle_SetName((CommandAndResponseFrame) receivedFrame);
 						break;
-					case (F_CommandAndResponse.BayEOS_StartData):
+					case (CommandAndResponseFrame.BayEOS_StartData):
 						break;
-					case (F_CommandAndResponse.BayEOS_StopData):
+					case (CommandAndResponseFrame.BayEOS_StopData):
 						break;
-					case (F_CommandAndResponse.BayEOS_GetVersion):
+					case (CommandAndResponseFrame.BayEOS_GetVersion):
 						loggerFragment
-								.handle_GetVersion((F_CommandAndResponse) receivedFrame);
+								.handle_GetVersion((CommandAndResponseFrame) receivedFrame);
 
 						break;
-					case (F_CommandAndResponse.BayEOS_GetSamplingInt):
+					case (CommandAndResponseFrame.BayEOS_GetSamplingInt):
 						loggerFragment
-								.handle_GetSamplingInterval((F_CommandAndResponse) receivedFrame);
+								.handle_GetSamplingInterval((CommandAndResponseFrame) receivedFrame);
 
 						break;
-					case (F_CommandAndResponse.BayEOS_SetSamplingInt):
+					case (CommandAndResponseFrame.BayEOS_SetSamplingInt):
 						loggerFragment
-								.handle_SetSamplingInterval((F_CommandAndResponse) receivedFrame);
+								.handle_SetSamplingInterval((CommandAndResponseFrame) receivedFrame);
 
 						break;
-					case (F_CommandAndResponse.BayEOS_TimeOfNextFrame):
+					case (CommandAndResponseFrame.BayEOS_TimeOfNextFrame):
 						loggerFragment
-								.handle_TimeOfNextFrame((F_CommandAndResponse) receivedFrame);
+								.handle_TimeOfNextFrame((CommandAndResponseFrame) receivedFrame);
 
 						break;
-					case (F_CommandAndResponse.BayEOS_StartLiveData):
+					case (CommandAndResponseFrame.BayEOS_StartLiveData):
 						liveDataStarted = true;
 						break;
-					case (F_CommandAndResponse.BayEOS_ModeStop):
+					case (CommandAndResponseFrame.BayEOS_ModeStop):
 						liveDataStarted = false;
-						break;
-					case (F_CommandAndResponse.BayEOS_Seek):
-						break;
-					case (F_CommandAndResponse.BayEOS_StartBinaryDump):
-						loggerFragment
-								.handle_StartBinaryDump((F_CommandAndResponse) receivedFrame);
+						loggerFragment.setDumpInterrupted(false);
 
 						break;
-					case (F_CommandAndResponse.BayEOS_BufferCommand):
+					case (CommandAndResponseFrame.BayEOS_Seek):
+						break;
+					case (CommandAndResponseFrame.BayEOS_StartBinaryDump):
+						loggerFragment
+								.handle_StartBinaryDump((CommandAndResponseFrame) receivedFrame);
+
+						break;
+					case (CommandAndResponseFrame.BayEOS_BufferCommand):
 						switch (bufferCommand) {
-						case (F_CommandAndResponse.BayEOS_BufferCommand_Erase):
+						case (CommandAndResponseFrame.BayEOS_BufferCommand_Erase):
 							loggerFragment.updateTime();
 							break;
-						case (F_CommandAndResponse.BayEOS_BufferCommand_GetReadPosition):
+						case (CommandAndResponseFrame.BayEOS_BufferCommand_GetReadPosition):
 							loggerFragment
-									.handle_BuferCommand_GetReadPosition((F_CommandAndResponse) receivedFrame);
+									.handle_BuferCommand_GetReadPosition((CommandAndResponseFrame) receivedFrame);
 
 							break;
-						case (F_CommandAndResponse.BayEOS_BufferCommand_GetWritePosition):
+						case (CommandAndResponseFrame.BayEOS_BufferCommand_GetWritePosition):
 							break;
-						case (F_CommandAndResponse.BayEOS_BufferCommand_SaveCurrentReadPointerToEEPROM):
+						case (CommandAndResponseFrame.BayEOS_BufferCommand_SaveCurrentReadPointerToEEPROM):
 							break;
-						case (F_CommandAndResponse.BayEOS_BufferCommand_SetReadPointerToEndPositionOfBinaryDump):
+						case (CommandAndResponseFrame.BayEOS_BufferCommand_SetReadPointerToEndPositionOfBinaryDump):
 							break;
-						case (F_CommandAndResponse.BayEOS_BufferCommand_SetReadPointerToWritePointer):
+						case (CommandAndResponseFrame.BayEOS_BufferCommand_SetReadPointerToWritePointer):
 							break;
-						case (F_CommandAndResponse.BayEOS_BufferCommand_SetReadPointerToLastEEPROMPosition):
+						case (CommandAndResponseFrame.BayEOS_BufferCommand_SetReadPointerToLastEEPROMPosition):
 							break;
 						default:
 							Log.e(TAG,

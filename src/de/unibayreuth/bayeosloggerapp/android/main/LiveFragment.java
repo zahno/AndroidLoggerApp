@@ -25,7 +25,7 @@ import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.LinearLayout.LayoutParams;
 import android.widget.ToggleButton;
-import de.unibayreuth.bayeosloggerapp.frames.bayeos.F_Data;
+import de.unibayreuth.bayeosloggerapp.frames.bayeos.DataFrame;
 import de.unibayreuth.bayeosloggerapp.frames.serial.SerialFrame;
 
 public class LiveFragment extends Fragment {
@@ -36,8 +36,8 @@ public class LiveFragment extends Fragment {
 	ToggleButton toggleButton;
 	LinearLayout linearLayout, linLay_charts;
 
-	private LayoutParams LLParams = new LayoutParams(LayoutParams.MATCH_PARENT,
-			300);
+	private LayoutParams layoutParams = new LayoutParams(
+			LayoutParams.MATCH_PARENT, 300);
 	private float labelTextSize;
 
 	private Hashtable<Short, TimeSeries> charts;
@@ -63,7 +63,7 @@ public class LiveFragment extends Fragment {
 		labelTextSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP,
 				10, metrics);
 
-		LLParams.setMargins(5, 0, 5, 5);
+		layoutParams.setMargins(5, 0, 5, 5);
 
 		charts = new Hashtable<>();
 
@@ -97,7 +97,7 @@ public class LiveFragment extends Fragment {
 		return view;
 	}
 
-	public void handle_DataFrame(F_Data receivedFrame) {
+	public void handle_DataFrame(DataFrame receivedFrame) {
 		Date date = new Date();
 		Set<Short> keys = receivedFrame.getValues().keySet();
 		for (Short channel : keys) {
@@ -161,16 +161,16 @@ public class LiveFragment extends Fragment {
 
 			// Creating a Time Chart
 
-			GraphicalView mChart = ChartFactory
-					.getTimeChartView(mainActivity, dataset, multiRenderer,
-							"EEE',' dd.MM.yyyy '\nat' HH:mm:ss z");
+			GraphicalView mChart = ChartFactory.getTimeChartView(mainActivity,
+					dataset, multiRenderer,
+					"EEE',' dd.MM.yyyy '\nat' HH:mm:ss z");
 
 			multiRenderer.setClickEnabled(true);
 			multiRenderer.setSelectableBuffer(10);
 
 			LinearLayout LL = new LinearLayout(mainActivity);
 			LL.setOrientation(LinearLayout.VERTICAL);
-			LL.setLayoutParams(LLParams);
+			LL.setLayoutParams(layoutParams);
 
 			LL.addView(mChart);
 			linLay_charts.addView(LL);
