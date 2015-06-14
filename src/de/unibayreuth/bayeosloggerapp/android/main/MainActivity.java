@@ -10,9 +10,11 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.view.ViewPager;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -28,7 +30,7 @@ import de.unibayreuth.bayeosloggerapp.frames.serial.Bulk;
 import de.unibayreuth.bayeosloggerapp.frames.serial.SerialFrame;
 import de.unibayreuth.bayeosloggerapp.tools.Tuple;
 
-public class MainActivity extends FragmentActivity {
+public class MainActivity extends AppCompatActivity {
 
 	private static final String TAG = "Main Activity";
 	private static D2xxManager ftD2xx = null;
@@ -38,6 +40,7 @@ public class MainActivity extends FragmentActivity {
 	private LoggerFragment loggerFragment;
 	private DumpsFragment dumpsFragment;
 	private LiveFragment liveFragment;
+	private AppPreferences appPreferences;
 
 	static final int READBUF_SIZE = 256;
 	byte[] rbuf = new byte[READBUF_SIZE];
@@ -109,6 +112,40 @@ public class MainActivity extends FragmentActivity {
 				});
 
 	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu items for use in the action bar
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.main, menu);
+		return super.onCreateOptionsMenu(menu);
+	}
+
+//	@Override
+//	public boolean onOptionsItemSelected(MenuItem item) {
+//		// Handle presses on the action bar items
+//		switch (item.getItemId()) {
+//
+//		case R.id.action_settings:
+//			openSettings();
+//			return true;
+//		default:
+//			return super.onOptionsItemSelected(item);
+//		}
+//	}
+
+//	private void openSettings() {
+//		getSupportFragmentManager().beginTransaction().replace(android.R.id.content, new AppPreferences()).commit();
+//	}
+
+//	@Override
+//	public void onBackPressed() {
+//		if (getSupportFragmentManager().getBackStackEntryCount() != 0) {
+//			getSupportFragmentManager().popBackStack();
+//		} else {
+//			super.onBackPressed();
+//		}
+//	}
 
 	@Override
 	protected void onDestroy() {
@@ -222,7 +259,11 @@ public class MainActivity extends FragmentActivity {
 	};
 
 	protected void addToQueue(byte[] serialFrame) {
+
 		try {
+			if (liveDataStarted) {
+				writeQueue.put(SerialFrame.modeStop);
+			}
 			writeQueue.put(serialFrame);
 		} catch (InterruptedException e) {
 			Log.e(TAG, "Could not add new frame to queue: " + e.getMessage());
@@ -292,15 +333,15 @@ public class MainActivity extends FragmentActivity {
 						payload[i] = readByte(escaped).getSecond();
 					}
 
-//					StringBuilder sb = new StringBuilder();
-//					sb.append("Payload: [");
-//					sb.append(String.format("%02X", payload[0]));
-//					for (int i = 1; i < length; i++) {
-//						sb.append(", ");
-//						sb.append(String.format("%02X", payload[i]));
-//					}
-//					sb.append("]");
-//					Log.i(TAG, sb.toString());
+					// StringBuilder sb = new StringBuilder();
+					// sb.append("Payload: [");
+					// sb.append(String.format("%02X", payload[0]));
+					// for (int i = 1; i < length; i++) {
+					// sb.append(", ");
+					// sb.append(String.format("%02X", payload[i]));
+					// }
+					// sb.append("]");
+					// Log.i(TAG, sb.toString());
 
 					byte checksum = readByte(escaped).getSecond();
 
@@ -348,7 +389,7 @@ public class MainActivity extends FragmentActivity {
 
 		if (serialFrame instanceof Bulk) {
 			loggerFragment.handleBulk((Bulk) serialFrame);
-//			Log.i(TAG, serialFrame.toString());
+			// Log.i(TAG, serialFrame.toString());
 		} else
 			handlePayload(serialFrame.getPayload());
 	}
@@ -422,7 +463,10 @@ public class MainActivity extends FragmentActivity {
 						liveDataStarted = true;
 						break;
 					case (CommandAndResponseFrame.BayEOS_ModeStop):
-						liveDataStarted = false;
+						if (liveDataStarted) {
+							liveFragment.getToggleButton().setChecked(false);
+							liveDataStarted = false;
+						}
 						loggerFragment.setDumpInterrupted(false);
 
 						break;
@@ -597,6 +641,14 @@ public class MainActivity extends FragmentActivity {
 
 	public void setBufferCommand(byte expectedBufferCommand) {
 		this.bufferCommand = expectedBufferCommand;
+	}
+
+	public void setPreferenceFragment(AppPreferences appPreferences) {
+		this.appPreferences = appPreferences;
+	}
+	
+	public AppPreferences getPreferenceFragment() {
+		return appPreferences;
 	}
 
 }

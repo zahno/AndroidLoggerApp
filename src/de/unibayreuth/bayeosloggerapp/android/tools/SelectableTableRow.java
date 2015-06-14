@@ -4,6 +4,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Vector;
 
 import android.content.Context;
 import android.view.View;
@@ -12,11 +13,12 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import de.unibayreuth.bayeosloggerapp.android.main.MainActivity;
 import de.unibayreuth.bayeosloggerapp.android.main.R;
+import de.unibayreuth.bayeosloggerapp.frames.bayeos.DumpedFrame;
 
 public class SelectableTableRow extends TableRow {
 
 	private boolean isSelected = false;
-	private File rawFile, parsedFile;
+	private File rawFile, excelFile;
 	private String name;
 	private Integer records = null;
 	private String start, end;
@@ -36,7 +38,7 @@ public class SelectableTableRow extends TableRow {
 				}
 			}
 		});
-		updateParsedFileInfo();
+		updateFileMetadata();
 	}
 
 	public void setTvName(TextView name) {
@@ -71,9 +73,17 @@ public class SelectableTableRow extends TableRow {
 		return tv_records;
 	}
 
-	private void updateParsedFileInfo() {
+	private void updateFileMetadata() {
 
-		ReadWriteFile.readExcelFile(this);
+		byte[] readFile = ReadWriteFile.readFile(this.getRawFile());
+
+		Vector<DumpedFrame> dumpedFrames = DumpedFrame.parseDumpFile(readFile);
+
+		setStart(dumpedFrames.firstElement().getTimestamp());
+		setEnd(dumpedFrames.lastElement().getTimestamp());
+		setRecords(dumpedFrames.size());
+
+		// ReadWriteFile.readExcelFile(this);
 	}
 
 	public boolean isSelected() {
@@ -89,11 +99,11 @@ public class SelectableTableRow extends TableRow {
 	}
 
 	public void setParsedFile(File file) {
-		this.parsedFile = file;
+		this.excelFile = file;
 	}
 
 	public File getParsedFile() {
-		return parsedFile;
+		return excelFile;
 	}
 
 	public String getName() {
@@ -160,15 +170,7 @@ public class SelectableTableRow extends TableRow {
 
 		if (parsedFile != null) {
 			this.setParsedFile(parsedFile);
-			this.updateParsedFileInfo();
-		} else {
-			this.setStart("File not parsed yet!");
-			// file not parsed yet!
 		}
-	}
-
-	public boolean isParsed() {
-		return (start != null && end != null && records != null);
 	}
 
 	public void select() {

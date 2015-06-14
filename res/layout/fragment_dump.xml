@@ -17,7 +17,9 @@
             style="?android:attr/buttonBarButtonStyle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:layout_weight="1"
+            android:gravity="center"
             android:text="@string/dumps_refresh"
             android:textSize="14sp" />
 
@@ -26,21 +28,37 @@
             style="?android:attr/buttonBarButtonStyle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:layout_weight="1"
+            android:gravity="center"
             android:text="@string/dumps_parseData"
             android:textSize="14sp" />
 
-        <View android:layout_width="0dp" android:layout_height="0dp"/>
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp" />
 
         <Button
             android:id="@+id/dumps_selectAll"
             style="?android:attr/buttonBarButtonStyle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:layout_weight="1"
+            android:gravity="center"
             android:text="@string/dumps_selectAll"
             android:textSize="14sp" />
 
+        <Button
+            android:id="@+id/dumps_btn_upload"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/dumps_upload"
+            android:textSize="14sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -117,13 +135,6 @@
                 </TableLayout>
             </LinearLayout>
         </ScrollView>
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="2"
-        android:orientation="vertical" >
     </LinearLayout>
 
 </LinearLayout>

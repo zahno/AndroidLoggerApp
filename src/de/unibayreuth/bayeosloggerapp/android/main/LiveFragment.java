@@ -31,10 +31,8 @@ import de.unibayreuth.bayeosloggerapp.frames.serial.SerialFrame;
 public class LiveFragment extends Fragment {
 	private static final String TAG = "LiveFragment";
 
-	MainActivity mainActivity;
-
-	ToggleButton toggleButton;
-	LinearLayout linearLayout, linLay_charts;
+	private ToggleButton toggleButton;
+	private LinearLayout linearLayout, linLay_charts;
 
 	private LayoutParams layoutParams = new LayoutParams(
 			LayoutParams.MATCH_PARENT, 300);
@@ -42,9 +40,8 @@ public class LiveFragment extends Fragment {
 
 	private Hashtable<Short, TimeSeries> charts;
 
-	public LiveFragment(MainActivity mainActivity) {
-		this.mainActivity = mainActivity;
 
+	public LiveFragment() {
 	}
 
 	@Override
@@ -82,9 +79,9 @@ public class LiveFragment extends Fragment {
 					public void onCheckedChanged(CompoundButton buttonView,
 							boolean isChecked) {
 						if (isChecked) {
-							mainActivity.addToQueue(SerialFrame.startLiveData);
+							((MainActivity) getActivity()).addToQueue(SerialFrame.startLiveData);
 						} else {
-							mainActivity.addToQueue(SerialFrame.modeStop);
+							((MainActivity) getActivity()).addToQueue(SerialFrame.modeStop);
 						}
 					}
 				});
@@ -161,14 +158,14 @@ public class LiveFragment extends Fragment {
 
 			// Creating a Time Chart
 
-			GraphicalView mChart = ChartFactory.getTimeChartView(mainActivity,
+			GraphicalView mChart = ChartFactory.getTimeChartView(((MainActivity) getActivity()),
 					dataset, multiRenderer,
 					"EEE',' dd.MM.yyyy '\nat' HH:mm:ss z");
 
 			multiRenderer.setClickEnabled(true);
 			multiRenderer.setSelectableBuffer(10);
 
-			LinearLayout LL = new LinearLayout(mainActivity);
+			LinearLayout LL = new LinearLayout(((MainActivity) getActivity()));
 			LL.setOrientation(LinearLayout.VERTICAL);
 			LL.setLayoutParams(layoutParams);
 
@@ -198,6 +195,10 @@ public class LiveFragment extends Fragment {
 
 	public void enableContent() {
 		MainActivity.enable(linearLayout);
+	}
+
+	public ToggleButton getToggleButton() {
+		return toggleButton;
 	}
 
 }

@@ -27,9 +27,8 @@ public class Frame {
 	public static final byte DATAFRAME = 0x20;
 	public static final byte DATAFRAME_WITH_CHANNEL_OFFSET = 0x0;
 	public static final byte DATAFRAME_WITH_CHANNEL_INDEX = 0x40;
-	
-	public static final byte BINARY_DUMP = 0x0A;
 
+	public static final byte BINARY_DUMP = 0x0A;
 
 	private byte frameType;
 	private byte[] data;
@@ -107,12 +106,15 @@ public class Frame {
 	}
 
 	public static Frame toBayEOSFrame(byte[] payload) {
+		if (payload.length == 0)
+			return null;
+
 		byte frameType = payload[0];
 		switch (frameType) {
 		case FRAMETYPE_DATAFRAME:
 			return new DataFrame(payload);
 
-			//  Command and Response
+			// Command and Response
 		case FRAMETYPE_COMMAND:
 		case FRAMETYPE_COMMAND_RESPONSE:
 			return new CommandAndResponseFrame(payload);
@@ -168,7 +170,6 @@ public class Frame {
 		return values;
 	}
 
-
 	public byte[] getData() {
 		return data;
 	}
@@ -179,6 +180,14 @@ public class Frame {
 
 	public int getLength() {
 		return length;
+	}
+
+	public byte[] asByteArray() {
+		byte[] b = new byte[1 + data.length];
+		b[0] = frameType;
+		for (int i = 0; i < data.length; i++)
+			b[i + 1] = data[i];
+		return b;
 	}
 
 }

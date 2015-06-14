@@ -5,8 +5,9 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 
 public class AppFragmentPagerAdapter extends FragmentPagerAdapter {
-	final int PAGE_COUNT = 3;
-	private String tabTitles[] = new String[] { "Logger", "Dumps", "Live" };
+	final int PAGE_COUNT = 4;
+	private String tabTitles[] = new String[] { "Logger", "Dumps", "Live",
+			"Preferences" };
 	private MainActivity mainActivity;
 
 	public AppFragmentPagerAdapter(FragmentManager fm, MainActivity context) {
@@ -25,20 +26,25 @@ public class AppFragmentPagerAdapter extends FragmentPagerAdapter {
 		switch (position) {
 		case 0:
 			if (mainActivity.getLoggerFragment() == null) {
-				mainActivity
-						.setLoggerFragment(new LoggerFragment(mainActivity));
+				mainActivity.setLoggerFragment(new LoggerFragment());
 			}
 			return mainActivity.getLoggerFragment();
 		case 1:
 			if (mainActivity.getDumpsFragment() == null) {
-				mainActivity.setDumpsFragment(new DumpsFragment(mainActivity));
+				mainActivity.setDumpsFragment(new DumpsFragment());
 			}
 			return mainActivity.getDumpsFragment();
 		case 2:
 			if (mainActivity.getLiveFragment() == null) {
-				mainActivity.setLiveFragment(new LiveFragment(mainActivity));
+				mainActivity.setLiveFragment(new LiveFragment());
 			}
 			return mainActivity.getLiveFragment();
+
+		case 3:
+			if (mainActivity.getPreferenceFragment() == null) {
+				mainActivity.setPreferenceFragment(new AppPreferences());
+			}
+			return mainActivity.getPreferenceFragment();
 		}
 
 		return null;

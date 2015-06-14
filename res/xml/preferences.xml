@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory android:title="Gateway Login" >
+        <EditTextPreference
+            android:name="Username"
+            android:defaultValue=""
+            android:key="username"
+            android:title="Username" />
+        <EditTextPreference
+            android:name="Password"
+            android:defaultValue=""
+            android:inputType="textPassword"
+            android:key="password"
+            android:title="Password" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Gateway Information" >
+        <EditTextPreference
+            android:name="Host"
+            android:defaultValue="@string/pref_host_default"
+            android:key="host"
+            android:title="Host" />
+        <EditTextPreference
+            android:name="Path"
+            android:defaultValue="@string/pref_path_default"
+            android:key="path"
+            android:title="Path" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

@@ -27,8 +27,13 @@
     <string name="dump_tbl_end">End</string>
     <string name="dump_tbl_records">Records</string>
     <string name="dumps_refresh">Refresh</string>
-    <string name="dumps_parseData">Parse Data</string>
+    <string name="dumps_parseData">Save as Excel File</string>
     <string name="dumps_selectAll">Select All</string>
     <string name="dumps_deselectAll">Deselect All</string>
+    <string name="dumps_upload">Upload Data to Gateway</string>
+    <string name="dumps_upload_cancel">Cancel</string>
+    <string name="dumps_upload_ok">Ok</string>
+    <string name="pref_host_default">https://bayconf.bayceer.uni-bayreuth.de</string>
+    <string name="pref_path_default">/gateway/frame/saveFlat</string>
 
 </resources>

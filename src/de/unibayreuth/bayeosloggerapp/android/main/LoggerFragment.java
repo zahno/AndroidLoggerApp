@@ -8,7 +8,6 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Vector;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -55,8 +54,6 @@ public class LoggerFragment extends Fragment {
 	private long binaryDump_NumberOfBytes;
 	private boolean interruptDump = false;
 
-	MainActivity mainActivity;
-
 	Switch sw_connection;
 	Button btn_saveData, btn_eraseData, btn_setName, btn_setSamplingInterval,
 			btn_syncTime;
@@ -67,10 +64,6 @@ public class LoggerFragment extends Fragment {
 	TextView eT_version, eT_currentDate, eT_dateofNextFrame,
 			eT_estimatedNewFrames;
 	EditText eT_name, eT_samplingInt;
-
-	public LoggerFragment(MainActivity mainActivity) {
-		this.mainActivity = mainActivity;
-	}
 
 	public LoggerFragment() {
 	}
@@ -106,20 +99,20 @@ public class LoggerFragment extends Fragment {
 			public void onCheckedChanged(CompoundButton buttonView,
 					boolean isChecked) {
 				if (isChecked) {
-					if (mainActivity.openDevice()) {
-						// loggerFragment.getMainActivity().appendDevOpenedText();
+					if (((MainActivity) getActivity()).openDevice()) {
+						// loggerFragment.get((MainActivity) getActivity())().appendDevOpenedText();
 						enableContent();
-						ToastMessage.toastConnectionSuccessful(mainActivity);
+						ToastMessage.toastConnectionSuccessful(((MainActivity) getActivity()));
 
 					} else {
 						disableContent();
-						ToastMessage.toastConnectionFailed(mainActivity);
+						ToastMessage.toastConnectionFailed(((MainActivity) getActivity()));
 					}
 
 				} else {
-					mainActivity.closeDevice();
+					((MainActivity) getActivity()).closeDevice();
 					disableContent();
-					// ToastMessage.toastDisconnected(loggerFragment.getMainActivity());
+					// ToastMessage.toastDisconnected(loggerFragment.get((MainActivity) getActivity())());
 				}
 			}
 		});
@@ -150,11 +143,11 @@ public class LoggerFragment extends Fragment {
 			@Override
 			public void onClick(View v) {
 
-				mainActivity.addToQueue(SerialFrame
+				((MainActivity) getActivity()).addToQueue(SerialFrame
 						.toSerialFrame(CommandAndResponseFrame
 								.command_setName(eT_name.getText())));
 
-				InputMethodManager inputMethodManager = (InputMethodManager) mainActivity
+				InputMethodManager inputMethodManager = (InputMethodManager) ((MainActivity) getActivity())
 						.getSystemService(Context.INPUT_METHOD_SERVICE);
 				inputMethodManager.hideSoftInputFromWindow(
 						btn_setName.getWindowToken(),
@@ -168,12 +161,12 @@ public class LoggerFragment extends Fragment {
 
 			@Override
 			public void onClick(View v) {
-				mainActivity.addToQueue(SerialFrame
+				((MainActivity) getActivity()).addToQueue(SerialFrame
 						.toSerialFrame(CommandAndResponseFrame
 								.command_setSamplingInterval(eT_samplingInt
 										.getText())));
 
-				InputMethodManager inputMethodManager = (InputMethodManager) mainActivity
+				InputMethodManager inputMethodManager = (InputMethodManager) ((MainActivity) getActivity())
 						.getSystemService(Context.INPUT_METHOD_SERVICE);
 				inputMethodManager.hideSoftInputFromWindow(
 						btn_setSamplingInterval.getWindowToken(),
@@ -196,8 +189,8 @@ public class LoggerFragment extends Fragment {
 
 			@Override
 			public void onClick(View v) {
-				mainActivity.addToQueue(SerialFrame.getReadPosition);
-				mainActivity
+				((MainActivity) getActivity()).addToQueue(SerialFrame.getReadPosition);
+				((MainActivity) getActivity())
 						.setBufferCommand(CommandAndResponseFrame.BayEOS_BufferCommand_GetReadPosition);
 
 			}
@@ -217,10 +210,10 @@ public class LoggerFragment extends Fragment {
 							@Override
 							public void onClick(DialogInterface dialog, int id) {
 
-								mainActivity.addToQueue(SerialFrame
+								((MainActivity) getActivity()).addToQueue(SerialFrame
 										.toSerialFrame(CommandAndResponseFrame
 												.command_BufferCommand_erase()));
-								mainActivity
+								((MainActivity) getActivity())
 										.setBufferCommand(CommandAndResponseFrame.BayEOS_BufferCommand_Erase);
 							}
 						});
@@ -250,9 +243,9 @@ public class LoggerFragment extends Fragment {
 	}
 
 	public void initializeLoggerData() {
-		mainActivity.addToQueue(SerialFrame.getVersion);
-		mainActivity.addToQueue(SerialFrame.getName);
-		mainActivity.addToQueue(SerialFrame.getSamplingInterval);
+		((MainActivity) getActivity()).addToQueue(SerialFrame.getVersion);
+		((MainActivity) getActivity()).addToQueue(SerialFrame.getName);
+		((MainActivity) getActivity()).addToQueue(SerialFrame.getSamplingInterval);
 		updateTime();
 	}
 
@@ -267,9 +260,9 @@ public class LoggerFragment extends Fragment {
 			Log.i(TAG, "Dump finished. No. Bytes: " + binaryDump.size()
 					+ " (expected " + binaryDump_NumberOfBytes + " Bytes)");
 
-			mainActivity
+			((MainActivity) getActivity())
 					.setBufferCommand(CommandAndResponseFrame.BayEOS_BufferCommand_SetReadPointerToEndPositionOfBinaryDump);
-			mainActivity
+			((MainActivity) getActivity())
 					.addToQueue(SerialFrame.setReadPointerToEndPositionOfBinaryDump);
 
 			binaryDumpProgress.dismiss();
@@ -311,10 +304,6 @@ public class LoggerFragment extends Fragment {
 		}
 	}
 
-	public MainActivity getMainActivity() {
-		return mainActivity;
-	}
-
 	public void enableContent() {
 		sw_connection.setChecked(true);
 		MainActivity.enable(tbl_Layout);
@@ -351,7 +340,7 @@ public class LoggerFragment extends Fragment {
 	public void handle_SetName(CommandAndResponseFrame receivedFrame) {
 		String name = StringTools.asciiToString(receivedFrame.getValues());
 		ToastMessage
-				.toastSuccess(mainActivity, "Set name to \"" + name + "\".");
+				.toastSuccess(((MainActivity) getActivity()), "Set name to \"" + name + "\".");
 	}
 
 	public void handle_GetVersion(CommandAndResponseFrame receivedFrame) {
@@ -369,7 +358,7 @@ public class LoggerFragment extends Fragment {
 	public void handle_SetSamplingInterval(CommandAndResponseFrame receivedFrame) {
 		short setSamplingInt = ((Short[]) Frame.parsePayload(
 				receivedFrame.getValues(), Number.Int16))[0];
-		ToastMessage.toastSuccess(mainActivity, "Set Sampling Interval to "
+		ToastMessage.toastSuccess(((MainActivity) getActivity()), "Set Sampling Interval to "
 				+ setSamplingInt + " seconds.");
 		updateTime();
 	}
@@ -396,7 +385,7 @@ public class LoggerFragment extends Fragment {
 		binaryDump = new Vector<>((int) binaryDump_NumberOfBytes);
 
 		// progress bar
-		binaryDumpProgress = new ProgressDialog(mainActivity);
+		binaryDumpProgress = new ProgressDialog(((MainActivity) getActivity()));
 		binaryDumpProgress.setMax((int) binaryDump_NumberOfBytes);
 
 		binaryDumpProgress.setTitle("Downloading Data..");
@@ -417,8 +406,8 @@ public class LoggerFragment extends Fragment {
 	}
 
 	public void updateTime() {
-		mainActivity.addToQueue(SerialFrame.getTime);
-		mainActivity.addToQueue(SerialFrame.getTimeOfNextFrame);
+		((MainActivity) getActivity()).addToQueue(SerialFrame.getTime);
+		((MainActivity) getActivity()).addToQueue(SerialFrame.getTimeOfNextFrame);
 
 	}
 
@@ -430,7 +419,7 @@ public class LoggerFragment extends Fragment {
 				receivedFrame.getValues(), Number.Int32))[0]; // Integer
 		if (readPosition != null) {
 
-			mainActivity.addToQueue(SerialFrame
+			((MainActivity) getActivity()).addToQueue(SerialFrame
 					.toSerialFrame(CommandAndResponseFrame
 							.command_startBinaryDump(readPosition)));
 
