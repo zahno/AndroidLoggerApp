@@ -3,8 +3,6 @@ package de.unibayreuth.bayeosloggerapp.android.main;
 import java.io.File;
 import java.util.Vector;
 
-import android.app.Activity;
-import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.Gravity;
@@ -19,9 +17,9 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import de.unibayreuth.bayeosloggerapp.android.tools.ReadWriteFile;
 import de.unibayreuth.bayeosloggerapp.android.tools.SelectableTableRow;
+import de.unibayreuth.bayeosloggerapp.android.tools.TableCreator;
 import de.unibayreuth.bayeosloggerapp.android.tools.ToastMessage;
 import de.unibayreuth.bayeosloggerapp.android.tools.ViewWrapper;
-import de.unibayreuth.bayeosloggerapp.frames.bayeos.DumpedFrame;
 
 public class DumpsFragment extends Fragment {
 	private static final String TAG = "DumpsFragment";
@@ -34,8 +32,6 @@ public class DumpsFragment extends Fragment {
 	private Button btn_refresh, btn_parseData, btn_selectAll, btn_upload;
 
 	private Vector<SelectableTableRow> rows;
-
-	private boolean interrupted = false;
 
 	public DumpsFragment() {
 	}
@@ -62,6 +58,9 @@ public class DumpsFragment extends Fragment {
 			@Override
 			public void onClick(View v) {
 				refreshTable();
+				ToastMessage.toastMessage((MainActivity) getActivity(),
+						"Table refreshed.");
+				return;
 			}
 		});
 
@@ -70,13 +69,35 @@ public class DumpsFragment extends Fragment {
 
 			@Override
 			public void onClick(View v) {
+
+				Vector<SelectableTableRow> selectedrows = new Vector<SelectableTableRow>();
+				Vector<SelectableTableRow> alreadParsedRows = new Vector<SelectableTableRow>();
+
 				for (SelectableTableRow row : rows) {
+					if (row.isSelected() && row.getParsedFile() != null) {
+						alreadParsedRows.add(row);
+					}
 					if (row.isSelected() && row.getParsedFile() == null) {
-
-						parseData(row);
-
+						selectedrows.add(row);
 					}
 				}
+				if (selectedrows.size() == 0 && !alreadParsedRows.isEmpty()) {
+					ToastMessage
+							.toastMessage((MainActivity) getActivity(),
+									"The file(s) you selected is (are) already converted.");
+					return;
+				} else if (selectedrows.size() == 0) {
+					ToastMessage.toastMessage((MainActivity) getActivity(),
+							"Select at least one file you wish to convert.");
+					return;
+				}
+				Dumps_ParseDialog dialog = new Dumps_ParseDialog(selectedrows,
+						alreadParsedRows, getActivity());
+				dialog.show(
+						((MainActivity) getActivity()).getFragmentManager(),
+						"ParseDialog");
+				ViewWrapper.forceWrapContent(dialog.getTableView());
+
 			}
 		});
 
@@ -111,9 +132,8 @@ public class DumpsFragment extends Fragment {
 				// TODO Auto-generated method stub
 
 				if (getSelectedRows().size() == 0) {
-					ToastMessage
-							.toastMessage((MainActivity) getActivity(),
-									"Please select at least one file you wish to upload!");
+					ToastMessage.toastMessage((MainActivity) getActivity(),
+							"Select at least one file you wish to upload.");
 					return;
 				}
 				Dumps_UploadDialog dialog = new Dumps_UploadDialog(
@@ -122,7 +142,6 @@ public class DumpsFragment extends Fragment {
 						((MainActivity) getActivity()).getFragmentManager(),
 						"UploadDialog");
 				ViewWrapper.forceWrapContent(dialog.getTableView());
-				
 
 			}
 		});
@@ -154,9 +173,24 @@ public class DumpsFragment extends Fragment {
 		// all files in the directory of raw dumps
 		File[] files = ReadWriteFile.getFiles(MainActivity.DirectoryNameRaw);
 
+		boolean contained;
+		for (SelectableTableRow row : rows) {
+			contained = false;
+			for (File file : files) {
+				if (row.getRawFile().equals(file)) {
+					contained = true;
+					break;
+				}
+			}
+			if (!contained) {
+				tbllay_dumpsdata.removeView(row);
+				rows.remove(row);
+			}
+		}
+
 		for (File file : files) {
 			// check if file already belongs to a table row
-			boolean contained = false;
+			contained = false;
 			for (SelectableTableRow row : rows) {
 				if (row.getRawFile().equals(file)) {
 					contained = true;
@@ -165,6 +199,8 @@ public class DumpsFragment extends Fragment {
 			}
 			if (contained)
 				continue;
+
+			int dps = TableCreator.getDps(getActivity(), 10);
 
 			/* Create a new row to be added. */
 			SelectableTableRow tr = new SelectableTableRow(
@@ -191,18 +227,21 @@ public class DumpsFragment extends Fragment {
 			name.setText(tr.getName());
 			name.setWidth(tv_name.getWidth());
 			name.setLayoutParams(params);
+			name.setPadding(dps, 0, dps, 0);
 
 			start.setBackgroundResource(R.drawable.cell_shape);
 			start.setGravity(Gravity.CENTER);
 			start.setWidth(tv_start.getWidth());
 			start.setLayoutParams(params);
 			start.setText(tr.getStart());
+			start.setPadding(dps, 0, dps, 0);
 
 			end.setBackgroundResource(R.drawable.cell_shape);
 			end.setGravity(Gravity.CENTER);
 			end.setWidth(tv_end.getWidth());
 			end.setLayoutParams(params);
 			end.setText(tr.getEnd());
+			end.setPadding(dps, 0, dps, 0);
 
 			records.setBackgroundResource(R.drawable.cell_shape);
 			records.setGravity(Gravity.CENTER);
@@ -210,6 +249,7 @@ public class DumpsFragment extends Fragment {
 			records.setLayoutParams(params);
 			if (tr.getRecords() != null)
 				records.setText(String.valueOf(tr.getRecords()));
+			records.setPadding(dps, 0, dps, 0);
 
 			tr.addView(name);
 			tr.addView(start);
@@ -219,6 +259,7 @@ public class DumpsFragment extends Fragment {
 			rows.add(tr);
 			tbllay_dumpsdata.addView(tr);
 		}
+		tbllay_dumpsdata.invalidate();
 	}
 
 	public void updateParseButtonState() {
@@ -231,97 +272,4 @@ public class DumpsFragment extends Fragment {
 		btn_parseData.setEnabled(false);
 	}
 
-	private void parseData(final SelectableTableRow row) {
-
-		ProgressDialog pg = new ProgressDialog(((MainActivity) getActivity()));
-
-		pg.setTitle("Convert file \"" + row.getName() + "\" to Excel File");
-		pg.setMessage("Test");
-		pg.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-		pg.setIndeterminate(false);
-
-		pg.setCancelable(false);
-		// TODO implement cancel
-		// pg.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel",
-		// new DialogInterface.OnClickListener() {
-		// @Override
-		// public void onClick(DialogInterface dialog, int which) {
-		// dialog.dismiss();
-		// setInterrupted(true);
-		//
-		// }
-		// });
-
-		pg.show();
-
-		ParseThread parse = new ParseThread(row,
-				((MainActivity) getActivity()), pg);
-		parse.start();
-	}
-
-	protected void setInterrupted(boolean interrupted) {
-		this.interrupted = interrupted;
-	}
-
-	public boolean convertInterrupted() {
-		return interrupted;
-	}
-
-	class ParseThread extends Thread {
-
-		private SelectableTableRow row;
-		private Activity context;
-		private ProgressDialog pg;
-
-		public ParseThread(SelectableTableRow row, Activity context,
-				ProgressDialog pg) {
-			this.row = row;
-			this.context = context;
-			this.pg = pg;
-		}
-
-		@Override
-		public void run() {
-			context.runOnUiThread(new Runnable() {
-				@Override
-				public void run() {
-					pg.setMessage("Reading Binary Dump..");
-				}
-			});
-
-			byte[] readFile = ReadWriteFile.readFile(row.getRawFile(), pg);
-
-			context.runOnUiThread(new Runnable() {
-				@Override
-				public void run() {
-					pg.setMessage("Parsing Binary Dump");
-				}
-			});
-			Vector<DumpedFrame> dumpedFrames = DumpedFrame.parseDumpFile(
-					readFile, pg);
-			pg.setMax(dumpedFrames.size());
-
-			context.runOnUiThread(new Runnable() {
-				@Override
-				public void run() {
-					pg.setMessage("Creating Excel File");
-				}
-			});
-
-			ReadWriteFile.saveExcelFile(dumpedFrames, row.getRawFile()
-					.getName().split("\\.")[0], pg,
-					((MainActivity) getActivity()));
-
-			row.addParsedFileInformation();
-
-			pg.dismiss();
-			context.runOnUiThread(new Runnable() {
-				@Override
-				public void run() {
-					refreshTable();
-				}
-			});
-		}
-
-	}
 }

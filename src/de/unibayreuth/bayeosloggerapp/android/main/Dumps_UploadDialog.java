@@ -39,7 +39,7 @@ import de.unibayreuth.bayeosloggerapp.frames.bayeos.DumpedFrame;
 import de.unibayreuth.bayeosloggerapp.tools.StringTools;
 
 public class Dumps_UploadDialog extends DialogFragment {
-	private static final String TAG = "Upload Dialog Fragment";
+	private static final String TAG = "Upload Dialog ";
 	private String user, password;
 	private String host, path;
 	private String[][] files;
@@ -75,15 +75,12 @@ public class Dumps_UploadDialog extends DialogFragment {
 		this.host = preferences.getString("host", null);
 		this.path = preferences.getString("path", null);
 
-		final StringBuilder sb = new StringBuilder();
-		sb.append("Gateway: \n" + host + path + "\n\n");
-		sb.append("File(s):");
-
+		View v = TableCreator.addMessage(tableView, getActivity(), "Gateway:",
+				host + path);
 		return new AlertDialog.Builder(getActivity())
 				.setTitle(
 						"Upload following " + selectedrows.size() + " file(s)?")
-				.setMessage(sb.toString().toString())
-				.setView(this.tableView)
+				.setView(v)
 				.setPositiveButton(android.R.string.ok,
 						new DialogInterface.OnClickListener() {
 							public void onClick(DialogInterface dialog,
@@ -127,12 +124,12 @@ public class Dumps_UploadDialog extends DialogFragment {
 class UploadDataToGateway extends AsyncTask<String, String, Void> {
 
 	private static final String TAG = "UploadDataToGateway";
-	Vector<SelectableTableRow> selectedRows;
-	String userName, passWord;
-	ProgressDialog progress, cancel;
-	String[][] results;
-	boolean cancelled;
-	MainActivity context;
+	private Vector<SelectableTableRow> selectedRows;
+	private String userName, passWord;
+	private ProgressDialog progress, cancel;
+	private String[][] results;
+	private boolean cancelled;
+	private MainActivity context;
 
 	public UploadDataToGateway(MainActivity activity,
 			Vector<SelectableTableRow> selectedrows, String userName,
@@ -153,7 +150,7 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 	protected void onPreExecute() {
 
 		progress.setTitle("Uploading " + selectedRows.size()
-				+ " file(s) to gateway..");
+				+ " file(s) to gateway...");
 		progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
 		this.progress.setMessage("");
 		progress.setMax(selectedRows.size());
@@ -218,10 +215,11 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 
 		SelectableTableRow row;
 		for (int i = 0; i < selectedRows.size(); i++) {
-			row = selectedRows.get(i);
 			if (cancelled) {
 				break;
 			}
+			row = selectedRows.get(i);
+
 			// stringBuilder.append("\nFile \"" + row.getName() + "\": ");
 			results[0][i + 1] = i + 1 + "";
 			results[1][i + 1] = row.getRawFile().getName();
@@ -323,7 +321,6 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 		new AlertDialog.Builder(context)
 				.setTitle("Upload Report")
 				.setView(table)
-				// .setMessage("")
 				.setPositiveButton(android.R.string.ok,
 						new DialogInterface.OnClickListener() {
 							public void onClick(DialogInterface dialog,
@@ -333,8 +330,6 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 
 				.setIcon(android.R.drawable.ic_dialog_info).show();
 		ViewWrapper.forceWrapContent(table);
-		// dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
-		// ViewGroup.LayoutParams.MATCH_PARENT);
 
 		super.onPostExecute(result);
 	}

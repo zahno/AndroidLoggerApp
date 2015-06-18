@@ -10,8 +10,10 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical|center_horizontal"
         android:layout_marginTop="5dp"
+        android:textAllCaps="false"
         android:textOff="@string/live_toggleStartLiveData"
-        android:textOn="@string/live_toggleStopLiveData" />
+        android:textOn="@string/live_toggleStopLiveData"
+        android:textStyle="bold" />
 
     <View
         android:layout_width="fill_parent"

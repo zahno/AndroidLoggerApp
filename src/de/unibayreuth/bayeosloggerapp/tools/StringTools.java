@@ -62,7 +62,7 @@ public class StringTools {
 			code = responseCode + " (OK)";
 			break;
 		case (HttpURLConnection.HTTP_UNAUTHORIZED):
-			code = responseCode + " (Unautorized)";
+			code = responseCode + " (Unauthorized)";
 			break;
 		case (HttpURLConnection.HTTP_NOT_FOUND):
 			code = responseCode + " (Not Found)";

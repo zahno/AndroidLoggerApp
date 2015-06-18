@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
 	private LiveFragment liveFragment;
 	private AppPreferences appPreferences;
 
-	static final int READBUF_SIZE = 256;
+	static final int READBUF_SIZE = 100;
 	byte[] rbuf = new byte[READBUF_SIZE];
 
 	private BlockingQueue<byte[]> writeQueue = new ArrayBlockingQueue<byte[]>(
@@ -121,31 +121,32 @@ public class MainActivity extends AppCompatActivity {
 		return super.onCreateOptionsMenu(menu);
 	}
 
-//	@Override
-//	public boolean onOptionsItemSelected(MenuItem item) {
-//		// Handle presses on the action bar items
-//		switch (item.getItemId()) {
-//
-//		case R.id.action_settings:
-//			openSettings();
-//			return true;
-//		default:
-//			return super.onOptionsItemSelected(item);
-//		}
-//	}
+	// @Override
+	// public boolean onOptionsItemSelected(MenuItem item) {
+	// // Handle presses on the action bar items
+	// switch (item.getItemId()) {
+	//
+	// case R.id.action_settings:
+	// openSettings();
+	// return true;
+	// default:
+	// return super.onOptionsItemSelected(item);
+	// }
+	// }
 
-//	private void openSettings() {
-//		getSupportFragmentManager().beginTransaction().replace(android.R.id.content, new AppPreferences()).commit();
-//	}
+	// private void openSettings() {
+	// getSupportFragmentManager().beginTransaction().replace(android.R.id.content,
+	// new AppPreferences()).commit();
+	// }
 
-//	@Override
-//	public void onBackPressed() {
-//		if (getSupportFragmentManager().getBackStackEntryCount() != 0) {
-//			getSupportFragmentManager().popBackStack();
-//		} else {
-//			super.onBackPressed();
-//		}
-//	}
+	// @Override
+	// public void onBackPressed() {
+	// if (getSupportFragmentManager().getBackStackEntryCount() != 0) {
+	// getSupportFragmentManager().popBackStack();
+	// } else {
+	// super.onBackPressed();
+	// }
+	// }
 
 	@Override
 	protected void onDestroy() {
@@ -285,11 +286,15 @@ public class MainActivity extends AppCompatActivity {
 
 				synchronized (ftDev) {
 					if (loggerFragment.dumpInterrupted()) {
-						Log.e(TAG, "Dump interrupted");
-						if (ftDev.write(SerialFrame.modeStop) != SerialFrame.modeStop.length) {
-							Log.e(TAG,
-									"Dump Interrupted: couldnt write whole frame to device!");
-						}
+						int writtenBytes = ftDev.write(SerialFrame.modeStop);
+						Log.i(TAG, "wrote Ddum");
+						if (writtenBytes != SerialFrame.modeStop.length)
+							while (writtenBytes != SerialFrame.modeStop.length) {
+								writtenBytes = ftDev
+										.write(SerialFrame.modeStop);
+								Log.i(TAG,
+										"wrote Dump Interrupted again: Couldn't write whole frame to device");
+							}
 					}
 
 					// Frame Delimiter
@@ -352,8 +357,16 @@ public class MainActivity extends AppCompatActivity {
 							// Log.i(TAG, "Ack Frame received");
 						} else {
 							// Log.i(TAG, "New frame received!");
-
-							ftDev.write(SerialFrame.ACK_FRAME);
+							int writtenBytes = ftDev
+									.write(SerialFrame.ACK_FRAME);
+							Log.i(TAG, "wrote ACK");
+							if (writtenBytes != SerialFrame.ACK_FRAME.length)
+								while (writtenBytes != SerialFrame.ACK_FRAME.length) {
+									writtenBytes = ftDev
+											.write(SerialFrame.ACK_FRAME);
+									Log.i(TAG, "wrote ACK again: Couldn't write whole frame to device");
+								}
+//							ftDev.write(SerialFrame.ACK_FRAME);
 							handleSerialFrame(SerialFrame.toSerialFrame(length,
 									apiType, payload, checksum));
 						}
@@ -370,6 +383,7 @@ public class MainActivity extends AppCompatActivity {
 
 			int bytesToRead = 1;
 			int receivedBytes = ftDev.read(rbuf, bytesToRead, 50);
+
 			if (receivedBytes != 0) {
 
 				if (!byteEscaped || rbuf[0] != 0x7d)
@@ -389,7 +403,7 @@ public class MainActivity extends AppCompatActivity {
 
 		if (serialFrame instanceof Bulk) {
 			loggerFragment.handleBulk((Bulk) serialFrame);
-			// Log.i(TAG, serialFrame.toString());
+
 		} else
 			handlePayload(serialFrame.getPayload());
 	}
@@ -646,7 +660,7 @@ public class MainActivity extends AppCompatActivity {
 	public void setPreferenceFragment(AppPreferences appPreferences) {
 		this.appPreferences = appPreferences;
 	}
-	
+
 	public AppPreferences getPreferenceFragment() {
 		return appPreferences;
 	}

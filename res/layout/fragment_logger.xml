@@ -27,36 +27,62 @@
             android:layout_height="1dp"
             android:background="@android:color/darker_gray" />
 
-        <LinearLayout
+        <RelativeLayout
             android:id="@+id/logger_linLayout_SaveErase"
-            style="?android:attr/buttonBarStyle"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
+            android:layout_height="70dp"
+            android:layout_marginBottom="15dp"
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp"
-            android:layout_marginTop="20dp" >
+            android:layout_marginTop="15dp" >
+
+            <View
+                android:id="@+id/divider1"
+                android:layout_width="1dip"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentTop="true"
+                android:layout_centerHorizontal="true"
+                android:layout_marginBottom="4dip"
+                android:layout_marginTop="4dip"
+                android:background="?android:attr/dividerVertical" />
 
             <Button
                 android:id="@+id/btn_logger_saveData"
-                style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentTop="true"
+                android:layout_toLeftOf="@id/divider1"
+                android:layout_toStartOf="@id/divider1"
+                android:background="?android:attr/selectableItemBackground"
                 android:drawableTop="@drawable/download"
                 android:text="@string/logger_saveData"
-                android:textSize="14sp" />
+                android:textAllCaps="false"
+                android:textColor="#44b66e"
+                android:textSize="14sp"
+                android:textStyle="bold" />
 
             <Button
                 android:id="@+id/btn_logger_eraseData"
-                style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentRight="true"
+                android:layout_alignParentTop="true"
+                android:layout_toEndOf="@id/divider1"
+                android:layout_toRightOf="@id/divider1"
+                android:background="?android:attr/selectableItemBackground"
                 android:drawableTop="@drawable/erase"
                 android:text="@string/logger_eraseData"
-                android:textSize="14sp" />
-        </LinearLayout>
+                android:textAllCaps="false"
+                android:textColor="#44b66e"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </RelativeLayout>
 
         <TableLayout
             android:id="@+id/logger_tblLayout_LoggerData"
@@ -113,7 +139,7 @@
 
                 <Button
                     android:id="@+id/btn_logger_setName"
-                    style="?android:attr/buttonStyleSmall"
+                    style="?android:attr/buttonBarStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:maxHeight="45dp"
@@ -149,7 +175,7 @@
 
                 <Button
                     android:id="@+id/btn_logger_setSamplingInterval"
-                    style="?android:attr/buttonStyleSmall"
+                    style="?android:attr/buttonBarStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:maxHeight="45dp"
@@ -239,7 +265,7 @@
 
                 <Button
                     android:id="@+id/btn_syncTime"
-                    style="?android:attr/buttonStyleSmall"
+                    style="?android:attr/buttonBarStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="fill_parent"
                     android:maxHeight="45dp"

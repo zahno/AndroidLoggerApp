@@ -6,7 +6,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Vector;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -26,7 +25,7 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
-import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.Switch;
 import android.widget.TableLayout;
 import android.widget.TextView;
@@ -49,16 +48,18 @@ public class LoggerFragment extends Fragment {
 					(byte) 0xFF, (byte) 0xFF, (byte) 0xFF }));
 	Integer readPosition = null;
 
-	protected Vector<Byte> binaryDump;
+	protected byte[] binaryDump;
 	private ProgressDialog binaryDumpProgress;
 	private long binaryDump_NumberOfBytes;
+	private long binaryDump_ReceivedBytes;
+
 	private boolean interruptDump = false;
 
 	Switch sw_connection;
 	Button btn_saveData, btn_eraseData, btn_setName, btn_setSamplingInterval,
 			btn_syncTime;
 	TableLayout tbl_Layout;
-	LinearLayout lin_Layout;
+	RelativeLayout lin_Layout;
 	OnCheckedChangeListener switchListener;
 
 	TextView eT_version, eT_currentDate, eT_dateofNextFrame,
@@ -89,7 +90,7 @@ public class LoggerFragment extends Fragment {
 
 		tbl_Layout = (TableLayout) view
 				.findViewById(R.id.logger_tblLayout_LoggerData);
-		lin_Layout = (LinearLayout) view
+		lin_Layout = (RelativeLayout) view
 				.findViewById(R.id.logger_linLayout_SaveErase);
 
 		sw_connection = (Switch) view.findViewById(R.id.switch_logger_connect);
@@ -100,19 +101,23 @@ public class LoggerFragment extends Fragment {
 					boolean isChecked) {
 				if (isChecked) {
 					if (((MainActivity) getActivity()).openDevice()) {
-						// loggerFragment.get((MainActivity) getActivity())().appendDevOpenedText();
+						// loggerFragment.get((MainActivity)
+						// getActivity())().appendDevOpenedText();
 						enableContent();
-						ToastMessage.toastConnectionSuccessful(((MainActivity) getActivity()));
+						ToastMessage
+								.toastConnectionSuccessful(((MainActivity) getActivity()));
 
 					} else {
 						disableContent();
-						ToastMessage.toastConnectionFailed(((MainActivity) getActivity()));
+						ToastMessage
+								.toastConnectionFailed(((MainActivity) getActivity()));
 					}
 
 				} else {
 					((MainActivity) getActivity()).closeDevice();
 					disableContent();
-					// ToastMessage.toastDisconnected(loggerFragment.get((MainActivity) getActivity())());
+					// ToastMessage.toastDisconnected(loggerFragment.get((MainActivity)
+					// getActivity())());
 				}
 			}
 		});
@@ -189,7 +194,8 @@ public class LoggerFragment extends Fragment {
 
 			@Override
 			public void onClick(View v) {
-				((MainActivity) getActivity()).addToQueue(SerialFrame.getReadPosition);
+				((MainActivity) getActivity())
+						.addToQueue(SerialFrame.getReadPosition);
 				((MainActivity) getActivity())
 						.setBufferCommand(CommandAndResponseFrame.BayEOS_BufferCommand_GetReadPosition);
 
@@ -245,19 +251,26 @@ public class LoggerFragment extends Fragment {
 	public void initializeLoggerData() {
 		((MainActivity) getActivity()).addToQueue(SerialFrame.getVersion);
 		((MainActivity) getActivity()).addToQueue(SerialFrame.getName);
-		((MainActivity) getActivity()).addToQueue(SerialFrame.getSamplingInterval);
+		((MainActivity) getActivity())
+				.addToQueue(SerialFrame.getSamplingInterval);
 		updateTime();
 	}
 
 	public void handleBulk(Bulk bulkFrame) {
-		Vector<Byte> bulk = bulkFrame.getValuesAsVector();
+		byte[] bulk = bulkFrame.getValues();
 
-		binaryDump.addAll(bulk);
+		for (int i = 0; i < bulk.length; i++)
+			binaryDump[(int) (binaryDump_ReceivedBytes + i)] = bulk[i];
 
-		binaryDumpProgress.incrementProgressBy(bulkFrame.getLength() - 5);
+		binaryDump_ReceivedBytes += bulk.length;
+
+		Log.i(TAG,
+				"Length " + bulkFrame.getLength() + ", Data: "
+						+ bulkFrame.toString());
+		binaryDumpProgress.incrementProgressBy(bulk.length);
 
 		if (binaryDumpProgress.getProgress() == binaryDump_NumberOfBytes) {
-			Log.i(TAG, "Dump finished. No. Bytes: " + binaryDump.size()
+			Log.i(TAG, "Dump finished. No. Bytes: " + binaryDump.length
 					+ " (expected " + binaryDump_NumberOfBytes + " Bytes)");
 
 			((MainActivity) getActivity())
@@ -267,24 +280,16 @@ public class LoggerFragment extends Fragment {
 
 			binaryDumpProgress.dismiss();
 			updateTime();
+
 			saveBulk();
 		}
 
 	}
 
 	private void saveBulk() {
-		byte[] binaryDumpArray = new byte[binaryDump.size()];
-		for (int i = 0; i < binaryDump.size(); i++) {
-			binaryDumpArray[i] = (byte) (binaryDump.get(i) & 0xff);
-		}
 
-		new SaveRawDumpTask() {
-			@Override
-			protected void onPreExecute() {
-				this.name = eT_name.getText().toString();
-				this.directoryName = MainActivity.DirectoryNameRaw;
-			};
-		}.execute(binaryDumpArray);
+		new SaveRawDumpTask((MainActivity) getActivity(), eT_name.getText()
+				.toString(), MainActivity.DirectoryNameRaw).execute(binaryDump);
 	}
 
 	protected void setEstimatedNewFrames() {
@@ -339,8 +344,8 @@ public class LoggerFragment extends Fragment {
 
 	public void handle_SetName(CommandAndResponseFrame receivedFrame) {
 		String name = StringTools.asciiToString(receivedFrame.getValues());
-		ToastMessage
-				.toastSuccess(((MainActivity) getActivity()), "Set name to \"" + name + "\".");
+		ToastMessage.toastSuccess(((MainActivity) getActivity()),
+				"Set name to \"" + name + "\".");
 	}
 
 	public void handle_GetVersion(CommandAndResponseFrame receivedFrame) {
@@ -358,8 +363,8 @@ public class LoggerFragment extends Fragment {
 	public void handle_SetSamplingInterval(CommandAndResponseFrame receivedFrame) {
 		short setSamplingInt = ((Short[]) Frame.parsePayload(
 				receivedFrame.getValues(), Number.Int16))[0];
-		ToastMessage.toastSuccess(((MainActivity) getActivity()), "Set Sampling Interval to "
-				+ setSamplingInt + " seconds.");
+		ToastMessage.toastSuccess(((MainActivity) getActivity()),
+				"Set Sampling Interval to " + setSamplingInt + " seconds.");
 		updateTime();
 	}
 
@@ -382,10 +387,13 @@ public class LoggerFragment extends Fragment {
 				receivedFrame.getValues(), Number.UInt32))[0]; // Integer
 		Log.i(TAG, "Number of Bytes: " + binaryDump_NumberOfBytes);
 
-		binaryDump = new Vector<>((int) binaryDump_NumberOfBytes);
+		if (binaryDump_NumberOfBytes <= Integer.MAX_VALUE)
+			binaryDump = new byte[(int) binaryDump_NumberOfBytes];
+
+		binaryDump_ReceivedBytes = 0;
 
 		// progress bar
-		binaryDumpProgress = new ProgressDialog(((MainActivity) getActivity()));
+		binaryDumpProgress = new ProgressDialog(getActivity());
 		binaryDumpProgress.setMax((int) binaryDump_NumberOfBytes);
 
 		binaryDumpProgress.setTitle("Downloading Data..");
@@ -407,7 +415,8 @@ public class LoggerFragment extends Fragment {
 
 	public void updateTime() {
 		((MainActivity) getActivity()).addToQueue(SerialFrame.getTime);
-		((MainActivity) getActivity()).addToQueue(SerialFrame.getTimeOfNextFrame);
+		((MainActivity) getActivity())
+				.addToQueue(SerialFrame.getTimeOfNextFrame);
 
 	}
 
@@ -428,8 +437,49 @@ public class LoggerFragment extends Fragment {
 }
 
 class SaveRawDumpTask extends AsyncTask<byte[], String, String> {
-	String directoryName;
-	String name;
+	private String directoryName;
+	private ProgressDialog progress;
+	private MainActivity context;
+	private String filename;
+
+	public SaveRawDumpTask(MainActivity context, String loggerName, String path) {
+		this.context = context;
+		this.directoryName = path;
+		// context.runOnUiThread(new Runnable() {
+		// public void run() {
+		//
+		// }
+		// });
+
+		// Looper.prepare();
+		// Looper.loop();
+
+		// progress = new ProgressDialog(context);
+
+		DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+		Date date = new Date();
+
+		this.filename = "Dump_" + loggerName + "_" + dateFormat.format(date)
+				+ ".db";
+	}
+
+	@Override
+	protected void onPreExecute() {
+		context.runOnUiThread(new Runnable() {
+			public void run() {
+				progress = new ProgressDialog(context);
+
+				progress.setTitle("Saving Dump");
+				progress.setMessage("Saving \n\t" + filename + "...");
+				progress.setIndeterminate(true);
+
+				progress.setCancelable(false);
+
+				progress.show();
+			}
+		});
+	
+	}
 
 	@Override
 	protected String doInBackground(byte[]... bulkData) {
@@ -445,11 +495,7 @@ class SaveRawDumpTask extends AsyncTask<byte[], String, String> {
 			rootPath.mkdirs();
 		}
 
-		DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
-		Date date = new Date();
-
-		File bulk = new File(rootPath, "Dump_" + name + "_"
-				+ dateFormat.format(date) + ".db");
+		File bulk = new File(rootPath, filename);
 
 		if (bulk.exists()) {
 			bulk.delete();
@@ -475,5 +521,33 @@ class SaveRawDumpTask extends AsyncTask<byte[], String, String> {
 			return true;
 		}
 		return false;
+	}
+
+	@Override
+	protected void onPostExecute(String result) {
+		if (progress.isShowing()) {
+			progress.dismiss();
+		}
+
+		new AlertDialog.Builder(context)
+				.setTitle("Download Report")
+				.setMessage(
+						"Saved \n\t"
+								+ filename
+								+ "\nto \n\t"
+								+ new File(Environment
+										.getExternalStorageDirectory(),
+										MainActivity.DirectoryNameRaw)
+										.getAbsolutePath())
+				.setPositiveButton(android.R.string.ok,
+						new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface dialog,
+									int which) {
+							}
+						})
+
+				.setIcon(android.R.drawable.ic_dialog_info).show();
+
+		super.onPostExecute(result);
 	}
 }

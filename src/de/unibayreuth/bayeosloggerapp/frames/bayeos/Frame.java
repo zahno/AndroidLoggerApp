@@ -2,11 +2,9 @@ package de.unibayreuth.bayeosloggerapp.frames.bayeos;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Date;
 import java.util.Vector;
 
 import de.unibayreuth.bayeosloggerapp.frames.serial.SerialFrame;
-import de.unibayreuth.bayeosloggerapp.tools.DateAdapter;
 import de.unibayreuth.bayeosloggerapp.tools.NumberConverter;
 
 public class Frame {
