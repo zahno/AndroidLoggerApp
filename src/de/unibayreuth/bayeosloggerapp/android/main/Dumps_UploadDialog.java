@@ -2,6 +2,7 @@ package de.unibayreuth.bayeosloggerapp.android.main;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -36,6 +37,7 @@ import de.unibayreuth.bayeosloggerapp.android.tools.SelectableTableRow;
 import de.unibayreuth.bayeosloggerapp.android.tools.TableCreator;
 import de.unibayreuth.bayeosloggerapp.android.tools.ViewWrapper;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.DumpedFrame;
+import de.unibayreuth.bayeosloggerapp.frames.bayeos.TimestampFrame;
 import de.unibayreuth.bayeosloggerapp.tools.StringTools;
 
 public class Dumps_UploadDialog extends DialogFragment {
@@ -220,7 +222,6 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 			}
 			row = selectedRows.get(i);
 
-			// stringBuilder.append("\nFile \"" + row.getName() + "\": ");
 			results[0][i + 1] = i + 1 + "";
 			results[1][i + 1] = row.getRawFile().getName();
 
@@ -284,14 +285,21 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 		for (DumpedFrame frame : dumpedFrames) {
 			if (frame.getFrame() != null) {
 				sb.append("&bayeosframes[]=");
-				sb.append(Base64.encodeToString(frame.getFrame().asByteArray(),
-						Base64.DEFAULT));
+				// TODO timestamp frame!
+
+				try {
+					sb.append(URLEncoder.encode(Base64.encodeToString(
+							(new TimestampFrame(frame)).asByteArray(),
+							Base64.NO_WRAP), "UTF-8"));
+				} catch (UnsupportedEncodingException e) {
+					Log.e(TAG, e.getMessage());
+				}
 			}
 
 		}
 
 		String res = sb.toString();
-		res = res.replace("\r\n", "").replace("\n", "");
+//		res = res.replace("\r\n", "").replace("\n", "");
 		Log.i(TAG, res);
 		return res;
 	}
