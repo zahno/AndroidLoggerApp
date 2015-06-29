@@ -6,6 +6,12 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
+
+import org.joda.time.Duration;
+import org.joda.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -15,7 +21,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -38,12 +43,15 @@ import de.unibayreuth.bayeosloggerapp.frames.serial.SerialFrame;
 import de.unibayreuth.bayeosloggerapp.tools.DateAdapter;
 import de.unibayreuth.bayeosloggerapp.tools.NumberConverter;
 import de.unibayreuth.bayeosloggerapp.tools.StringTools;
+import de.unibayreuth.bayeosloggerapp.tools.Tuple;
 
 public class LoggerFragment extends Fragment {
 
-	private static final String TAG = "LoggerFragment";
+	// private static final String TAG = "LoggerFragment";
 
-	Date currentDate, dateOfNextFrame, noNewFramesDate = DateAdapter
+	private Logger LOG = LoggerFactory.getLogger(LoggerFragment.class);
+
+	Date currentLoggerDate, dateOfNextFrame, noNewFramesDate = DateAdapter
 			.getDate(NumberConverter.fromByteInt32(new byte[] { (byte) 0xFF,
 					(byte) 0xFF, (byte) 0xFF, (byte) 0xFF }));
 	Integer readPosition = null;
@@ -55,16 +63,17 @@ public class LoggerFragment extends Fragment {
 
 	private boolean interruptDump = false;
 
-	Switch sw_connection;
-	Button btn_saveData, btn_eraseData, btn_setName, btn_setSamplingInterval,
-			btn_syncTime;
-	TableLayout tbl_Layout;
-	RelativeLayout lin_Layout;
-	OnCheckedChangeListener switchListener;
+	private Switch sw_connection;
+	private Button btn_saveData, btn_eraseData, btn_setName,
+			btn_setSamplingInterval, btn_syncTime;
+	private TableLayout tbl_Layout;
+	private RelativeLayout lin_Layout;
 
-	TextView eT_version, eT_currentDate, eT_dateofNextFrame,
+	private TextView eT_version, eT_currentDate, eT_dateofNextFrame,
 			eT_estimatedNewFrames;
-	EditText eT_name, eT_samplingInt;
+	private EditText eT_name, eT_samplingInt;
+
+	private Tuple<Long, Instant> bytesAtTime;
 
 	public LoggerFragment() {
 	}
@@ -101,8 +110,6 @@ public class LoggerFragment extends Fragment {
 					boolean isChecked) {
 				if (isChecked) {
 					if (((MainActivity) getActivity()).openDevice()) {
-						// loggerFragment.get((MainActivity)
-						// getActivity())().appendDevOpenedText();
 						enableContent();
 						ToastMessage
 								.toastConnectionSuccessful(((MainActivity) getActivity()));
@@ -116,8 +123,6 @@ public class LoggerFragment extends Fragment {
 				} else {
 					((MainActivity) getActivity()).closeDevice();
 					disableContent();
-					// ToastMessage.toastDisconnected(loggerFragment.get((MainActivity)
-					// getActivity())());
 				}
 			}
 		});
@@ -166,10 +171,11 @@ public class LoggerFragment extends Fragment {
 
 			@Override
 			public void onClick(View v) {
-				((MainActivity) getActivity()).addToQueue(SerialFrame
-						.toSerialFrame(CommandAndResponseFrame
-								.command_setSamplingInterval(eT_samplingInt
-										.getText())));
+				if (!eT_samplingInt.getText().toString().isEmpty())
+					((MainActivity) getActivity()).addToQueue(SerialFrame
+							.toSerialFrame(CommandAndResponseFrame
+									.command_setSamplingInterval(eT_samplingInt
+											.getText())));
 
 				InputMethodManager inputMethodManager = (InputMethodManager) ((MainActivity) getActivity())
 						.getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -248,6 +254,9 @@ public class LoggerFragment extends Fragment {
 
 	}
 
+	/**
+	 * Initializes the logger data by putting some commands to the write queue.
+	 */
 	public void initializeLoggerData() {
 		((MainActivity) getActivity()).addToQueue(SerialFrame.getVersion);
 		((MainActivity) getActivity()).addToQueue(SerialFrame.getName);
@@ -256,22 +265,60 @@ public class LoggerFragment extends Fragment {
 		updateTime();
 	}
 
+	/**
+	 * Called when a frame in dump mode is received.
+	 * 
+	 * @param bulkFrame
+	 */
 	public void handleBulk(Bulk bulkFrame) {
-		byte[] bulk = bulkFrame.getValues();
+		if (((MainActivity) getActivity()).loggingEnabled())
+			LOG.info("Received Bulk");
 
+		final byte[] bulk = bulkFrame.getValues();
+
+		// add the recieved bulk values to the array binaryDump
 		for (int i = 0; i < bulk.length; i++)
 			binaryDump[(int) (binaryDump_ReceivedBytes + i)] = bulk[i];
 
 		binaryDump_ReceivedBytes += bulk.length;
 
-		Log.i(TAG,
-				"Length " + bulkFrame.getLength() + ", Data: "
-						+ bulkFrame.toString());
+		// Update the binaryDumpProgress dialog :
+
+		// determine the estimated remaining time to show the user in the
+		// progress dialog binaryDumpProgress
+		Instant timestamp = new Instant();
+		Duration d = new Duration(bytesAtTime.getSecond(), timestamp);
+		if (d.getMillis() >= 2000) {
+
+			final long estimatedTime = (d.getMillis() * ((binaryDump_NumberOfBytes - binaryDump_ReceivedBytes) / (binaryDump_ReceivedBytes - bytesAtTime
+					.getFirst())));
+
+			getActivity().runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+
+					binaryDumpProgress.setMessage("Estimated time: "
+							+ String.format(
+									"%d min, %d sec",
+									TimeUnit.MILLISECONDS
+											.toMinutes(estimatedTime),
+									TimeUnit.MILLISECONDS
+											.toSeconds(estimatedTime)
+											- TimeUnit.MINUTES
+													.toSeconds(TimeUnit.MILLISECONDS
+															.toMinutes(estimatedTime))));
+				}
+			});
+
+			bytesAtTime.setFirst(binaryDump_ReceivedBytes);
+			bytesAtTime.setSecond(timestamp);
+		}
 		binaryDumpProgress.incrementProgressBy(bulk.length);
 
+		// If the recieved number of bytes equals the expected number of bytes
 		if (binaryDumpProgress.getProgress() == binaryDump_NumberOfBytes) {
-			Log.i(TAG, "Dump finished. No. Bytes: " + binaryDump.length
-					+ " (expected " + binaryDump_NumberOfBytes + " Bytes)");
+			LOG.info("Dump finished. No. Bytes: {} (expected {} Bytes)",
+					binaryDump.length, binaryDump_NumberOfBytes);
 
 			((MainActivity) getActivity())
 					.setBufferCommand(CommandAndResponseFrame.BayEOS_BufferCommand_SetReadPointerToEndPositionOfBinaryDump);
@@ -281,27 +328,36 @@ public class LoggerFragment extends Fragment {
 			binaryDumpProgress.dismiss();
 			updateTime();
 
-			saveBulk();
+			saveDump(binaryDump);
 		}
 
 	}
 
-	private void saveBulk() {
+	/**
+	 * Saves the recieved dump into a .db file
+	 * 
+	 * @param binaryDump
+	 */
+	private void saveDump(byte[] binaryDump) {
 
-		new SaveRawDumpTask((MainActivity) getActivity(), eT_name.getText()
+		new SaveRawDump((MainActivity) getActivity(), eT_name.getText()
 				.toString(), MainActivity.DirectoryNameRaw).execute(binaryDump);
 	}
 
+	/**
+	 * Updates the TextView "Estimated new frames"
+	 */
 	protected void setEstimatedNewFrames() {
 		if (dateOfNextFrame.equals(noNewFramesDate)) {
 			eT_estimatedNewFrames.setText("0");
 			return;
 		}
 
-		if (dateOfNextFrame != null && currentDate != null
+		if (dateOfNextFrame != null && currentLoggerDate != null
 				&& eT_samplingInt.getText().length() != 0) {
 
-			long seconds = (currentDate.getTime() - dateOfNextFrame.getTime()) / 1000;
+			long seconds = (currentLoggerDate.getTime() - dateOfNextFrame
+					.getTime()) / 1000;
 			String samIn = eT_samplingInt.getText().toString();
 			int samplingInterval = (int) Float.parseFloat(samIn);
 			long estimatedNewFrames = seconds / samplingInterval;
@@ -309,18 +365,31 @@ public class LoggerFragment extends Fragment {
 		}
 	}
 
+	/**
+	 * Enables the content
+	 */
 	public void enableContent() {
 		sw_connection.setChecked(true);
 		MainActivity.enable(tbl_Layout);
 		MainActivity.enable(lin_Layout);
 	}
 
+	/**
+	 * Disables the content
+	 */
 	public void disableContent() {
 		sw_connection.setChecked(false);
 		MainActivity.disable(tbl_Layout);
 		MainActivity.disable(lin_Layout);
 	}
 
+	/**
+	 * Returns if the Dump was interrupted or not.
+	 * 
+	 * @return Returns true only if there is a dump running and the user pressed
+	 *         the cancel button. False otherwise.
+	 * @author Christiane Goehring
+	 */
 	public boolean dumpInterrupted() {
 		return interruptDump;
 	}
@@ -332,27 +401,89 @@ public class LoggerFragment extends Fragment {
 	public void handle_GetTime(CommandAndResponseFrame receivedFrame) {
 		Integer[] time = (Integer[]) Frame.parsePayload(
 				receivedFrame.getValues(), Number.Int32); // Integer
-		currentDate = DateAdapter.getDate(time[0]);
+		currentLoggerDate = DateAdapter.getDate(time[0]);
 		eT_currentDate.setText(new SimpleDateFormat(
 				"EEE',' dd.MM.yyyy 'at' HH:mm:ss z", Locale.US)
-				.format(currentDate));
+				.format(currentLoggerDate));
+
+		Date currentSystemDate = new Date();
+		if (!DateAdapter.differenceSmallerThan(currentSystemDate,
+				currentLoggerDate, DateAdapter.fiveMinutesInSeconds)) {
+
+			DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					switch (which) {
+					case DialogInterface.BUTTON_POSITIVE:
+						((MainActivity) getActivity()).addToQueue(SerialFrame
+								.toSerialFrame(CommandAndResponseFrame
+										.command_setTime()));
+						break;
+
+					case DialogInterface.BUTTON_NEGATIVE:
+						// No button clicked
+						break;
+					}
+				}
+			};
+
+			AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+			builder.setTitle("Logger time seems to be wrong!")
+					.setMessage(
+							"The time of the logger is off by more than 5 minutes compared to the time of your device.\n\nLogger Time:\n\t"
+									+ new SimpleDateFormat(
+											"EEE',' dd.MM.yyyy 'at' HH:mm:ss z",
+											Locale.US)
+											.format(currentLoggerDate)
+									+ "\n\nSystem Time:\n\t"
+									+ new SimpleDateFormat(
+											"EEE',' dd.MM.yyyy 'at' HH:mm:ss z",
+											Locale.US)
+											.format(currentSystemDate)
+									+ "\n\nDo you want to reset the logger date?")
+					.setPositiveButton(android.R.string.ok, dialogClickListener)
+					.setNegativeButton("Cancel", dialogClickListener).show();
+
+		}
+
 	}
 
+	/**
+	 * Handles the response to the command "Get Name"
+	 * 
+	 * @param receivedFrame
+	 */
 	public void handle_GetName(CommandAndResponseFrame receivedFrame) {
 		eT_name.setText(StringTools.asciiToString(receivedFrame.getValues()));
 	}
 
+	/**
+	 * Handles the response to the command "Set Name"
+	 * 
+	 * @param receivedFrame
+	 */
 	public void handle_SetName(CommandAndResponseFrame receivedFrame) {
 		String name = StringTools.asciiToString(receivedFrame.getValues());
-		ToastMessage.toastSuccess(((MainActivity) getActivity()),
-				"Set name to \"" + name + "\".");
+		eT_name.setText(name);
+		ToastMessage.toastMessageBottom(((MainActivity) getActivity()),
+				"Name set to \"" + name + "\".");
 	}
 
+	/**
+	 * Handles the response to the command "Get Version"
+	 * 
+	 * @param receivedFrame
+	 */
 	public void handle_GetVersion(CommandAndResponseFrame receivedFrame) {
 		eT_version
 				.setText(StringTools.asciiToString(receivedFrame.getValues()));
 	}
 
+	/**
+	 * Handles the response to the command "Get Sampling Interval"
+	 * 
+	 * @param receivedFrame
+	 */
 	public void handle_GetSamplingInterval(CommandAndResponseFrame receivedFrame) {
 		Short[] samplingInterval = (Short[]) Frame.parsePayload(
 				receivedFrame.getValues(), Number.Int16); // Integer
@@ -360,14 +491,25 @@ public class LoggerFragment extends Fragment {
 		eT_samplingInt.setText(StringTools.arrayToString(samplingInterval));
 	}
 
+	/**
+	 * Handles the response to the command "Set Sampling Interval"
+	 * 
+	 * @param receivedFrame
+	 */
 	public void handle_SetSamplingInterval(CommandAndResponseFrame receivedFrame) {
 		short setSamplingInt = ((Short[]) Frame.parsePayload(
 				receivedFrame.getValues(), Number.Int16))[0];
-		ToastMessage.toastSuccess(((MainActivity) getActivity()),
-				"Set Sampling Interval to " + setSamplingInt + " seconds.");
+		ToastMessage.toastMessageBottom(((MainActivity) getActivity()),
+				"Sampling Interval set to " + setSamplingInt + " seconds.");
+		eT_samplingInt.setText(""+setSamplingInt);
 		updateTime();
 	}
 
+	/**
+	 * Handles the response to the command "Get Time of Next Frame"
+	 * 
+	 * @param receivedFrame
+	 */
 	public void handle_TimeOfNextFrame(CommandAndResponseFrame receivedFrame) {
 		Integer[] timeOfNextFrame = (Integer[]) Frame.parsePayload(
 				receivedFrame.getValues(), Number.Int32); // Integer
@@ -382,10 +524,22 @@ public class LoggerFragment extends Fragment {
 		setEstimatedNewFrames();
 	}
 
+	/**
+	 * Handles the response to the command "Start Binary Dump"
+	 * 
+	 * @param receivedFrame
+	 */
 	public void handle_StartBinaryDump(CommandAndResponseFrame receivedFrame) {
+
+		bytesAtTime = new Tuple<Long, Instant>(Long.valueOf(0), new Instant());
+
 		binaryDump_NumberOfBytes = ((Long[]) Frame.parsePayload(
 				receivedFrame.getValues(), Number.UInt32))[0]; // Integer
-		Log.i(TAG, "Number of Bytes: " + binaryDump_NumberOfBytes);
+		LOG.info("Starting binary dump. Expecting {} bytes.",
+				binaryDump_NumberOfBytes);
+		if (binaryDump_NumberOfBytes == 0) {
+			return;
+		}
 
 		if (binaryDump_NumberOfBytes <= Integer.MAX_VALUE)
 			binaryDump = new byte[(int) binaryDump_NumberOfBytes];
@@ -397,6 +551,7 @@ public class LoggerFragment extends Fragment {
 		binaryDumpProgress.setMax((int) binaryDump_NumberOfBytes);
 
 		binaryDumpProgress.setTitle("Downloading Data..");
+		binaryDumpProgress.setMessage("Estimated time: -");
 		binaryDumpProgress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
 		binaryDumpProgress.setIndeterminate(false);
 
@@ -413,6 +568,10 @@ public class LoggerFragment extends Fragment {
 		binaryDumpProgress.show();
 	}
 
+	/**
+	 * Puts the commands "Get Time" and "Get Time of Next Frame" into the write
+	 * Queue and therefore updates the time
+	 */
 	public void updateTime() {
 		((MainActivity) getActivity()).addToQueue(SerialFrame.getTime);
 		((MainActivity) getActivity())
@@ -420,10 +579,14 @@ public class LoggerFragment extends Fragment {
 
 	}
 
-	public void handle_BuferCommand_GetReadPosition(
-			CommandAndResponseFrame receivedFrame) {
-		// Log.i(TAG, "getReadPosition");
+	/**
+	 * Handles the response to the command "Get Read Position"
+	 * 
+	 * @param receivedFrame
+	 */
 
+	public void handle_BufferCommand_GetReadPosition(
+			CommandAndResponseFrame receivedFrame) {
 		readPosition = ((Integer[]) Frame.parsePayload(
 				receivedFrame.getValues(), Number.Int32))[0]; // Integer
 		if (readPosition != null) {
@@ -434,29 +597,34 @@ public class LoggerFragment extends Fragment {
 
 		}
 	}
+
+	/**
+	 * Deletes all values from the Logger Data View
+	 */
+	public void resetView() {
+		eT_name.setText("");
+		eT_version.setText("");
+		eT_samplingInt.setText("");
+		eT_currentDate.setText("");
+		eT_dateofNextFrame.setText("");
+		eT_estimatedNewFrames.setText("");
+	}
 }
 
-class SaveRawDumpTask extends AsyncTask<byte[], String, String> {
+class SaveRawDump extends AsyncTask<byte[], String, String> {
+
+	private Logger LOG = LoggerFactory.getLogger(SaveRawDump.class);
+
 	private String directoryName;
 	private ProgressDialog progress;
 	private MainActivity context;
 	private String filename;
 
-	public SaveRawDumpTask(MainActivity context, String loggerName, String path) {
+	public SaveRawDump(MainActivity context, String loggerName, String path) {
 		this.context = context;
 		this.directoryName = path;
-		// context.runOnUiThread(new Runnable() {
-		// public void run() {
-		//
-		// }
-		// });
 
-		// Looper.prepare();
-		// Looper.loop();
-
-		// progress = new ProgressDialog(context);
-
-		DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		Date date = new Date();
 
 		this.filename = "Dump_" + loggerName + "_" + dateFormat.format(date)
@@ -478,14 +646,15 @@ class SaveRawDumpTask extends AsyncTask<byte[], String, String> {
 				progress.show();
 			}
 		});
-	
+
 	}
 
 	@Override
 	protected String doInBackground(byte[]... bulkData) {
+		Thread.currentThread().setName("AsyncTask SaveRawDump");
 
 		if (!isExternalStorageWritable()) {
-			Log.e("SaveBulk", "Storage not writable!");
+			LOG.error("External storage not writable!");
 			return null;
 		}
 
@@ -500,21 +669,29 @@ class SaveRawDumpTask extends AsyncTask<byte[], String, String> {
 		if (bulk.exists()) {
 			bulk.delete();
 		}
+		if (context.loggingEnabled())
+			LOG.info("Saving [{}] to {} ..",
+					StringTools.arrayToHexString(bulkData[0]),
+					bulk.getAbsolutePath());
 
 		try {
 			FileOutputStream fos = new FileOutputStream(bulk.getPath());
 
 			fos.write(bulkData[0]);
 			fos.close();
+			LOG.info("..wrote {} successfully.", bulk.getAbsolutePath());
 
 		} catch (java.io.IOException e) {
-			Log.e("SaveBulkTask", "Exception in writing a file", e);
+			if (context.loggingEnabled())
+				LOG.warn("Exception in writing a file: {}", e.getMessage());
 		}
 
-		return (null);
+		return null;
 	}
 
-	/* Checks if external storage is available for read and write */
+	/**
+	 * Checks if external storage is available for read and write
+	 */
 	public boolean isExternalStorageWritable() {
 		String state = Environment.getExternalStorageState();
 		if (Environment.MEDIA_MOUNTED.equals(state)) {

@@ -19,19 +19,25 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Base64;
-import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.LinearLayout;
 import de.unibayreuth.bayeosloggerapp.android.tools.ReadWriteFile;
 import de.unibayreuth.bayeosloggerapp.android.tools.SelectableTableRow;
 import de.unibayreuth.bayeosloggerapp.android.tools.TableCreator;
@@ -41,7 +47,9 @@ import de.unibayreuth.bayeosloggerapp.frames.bayeos.TimestampFrame;
 import de.unibayreuth.bayeosloggerapp.tools.StringTools;
 
 public class Dumps_UploadDialog extends DialogFragment {
-	private static final String TAG = "Upload Dialog ";
+	// private static final String TAG = "Upload Dialog ";
+	private Logger LOG = LoggerFactory.getLogger(Dumps_UploadDialog.class);
+
 	private String user, password;
 	private String host, path;
 	private String[][] files;
@@ -50,7 +58,7 @@ public class Dumps_UploadDialog extends DialogFragment {
 	private View tableView;
 
 	public Dumps_UploadDialog(Vector<SelectableTableRow> selectedRows,
-			Context context) {
+			MainActivity context) {
 		this.selectedrows = selectedRows;
 
 		this.files = new String[3][selectedrows.size() + 1];
@@ -64,7 +72,8 @@ public class Dumps_UploadDialog extends DialogFragment {
 			this.files[2][i + 1] = StringTools.byteCountConverter(selectedrows
 					.get(i).getRawFile().length());
 		}
-
+		if (context.loggingEnabled())
+			LOG.info("Uploading files: {}", selectedrows.toString());
 		this.tableView = TableCreator.createTable(files, context);
 
 	}
@@ -80,8 +89,7 @@ public class Dumps_UploadDialog extends DialogFragment {
 		View v = TableCreator.addMessage(tableView, getActivity(), "Gateway:",
 				host + path);
 		return new AlertDialog.Builder(getActivity())
-				.setTitle(
-						"Upload following " + selectedrows.size() + " file(s)?")
+				.setTitle("Upload " + selectedrows.size() + " file(s)?")
 				.setView(v)
 				.setPositiveButton(android.R.string.ok,
 						new DialogInterface.OnClickListener() {
@@ -125,13 +133,17 @@ public class Dumps_UploadDialog extends DialogFragment {
 
 class UploadDataToGateway extends AsyncTask<String, String, Void> {
 
-	private static final String TAG = "UploadDataToGateway";
+	// private static final String TAG = "UploadDataToGateway";
+	private Logger LOG = LoggerFactory.getLogger(UploadDataToGateway.class);
+
 	private Vector<SelectableTableRow> selectedRows;
 	private String userName, passWord;
 	private ProgressDialog progress, cancel;
 	private String[][] results;
 	private boolean cancelled;
 	private MainActivity context;
+
+	private final static int maxNoOfFrames = 10000;
 
 	public UploadDataToGateway(MainActivity activity,
 			Vector<SelectableTableRow> selectedrows, String userName,
@@ -153,9 +165,9 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 
 		progress.setTitle("Uploading " + selectedRows.size()
 				+ " file(s) to gateway...");
-		progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
 		this.progress.setMessage("");
-		progress.setMax(selectedRows.size());
+		progress.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+		progress.setIndeterminate(true);
 		progress.setCancelable(false);
 
 		progress.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel",
@@ -182,7 +194,8 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 	@Override
 	protected Void doInBackground(String... urls) {
 
-		// TODO insecure connection ok?
+		Thread.currentThread().setName("AsyncTask UploadDataToGateway");
+
 		SSLContext ctx;
 		try {
 			ctx = SSLContext.getInstance("TLS");
@@ -211,8 +224,10 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 					});
 
 		} catch (NoSuchAlgorithmException | KeyManagementException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			if (context.loggingEnabled())
+				LOG.warn(
+						"An exception occurred when connecting to gateway: {}",
+						e1.getMessage());
 		}
 
 		SelectableTableRow row;
@@ -225,100 +240,133 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 			results[0][i + 1] = i + 1 + "";
 			results[1][i + 1] = row.getRawFile().getName();
 
+			byte[] frames = null;
+			try {
+				frames = ReadWriteFile.readFile(row.getRawFile());
+			} catch (IOException e1) {
+				if (context.loggingEnabled())
+					LOG.warn(
+							"An Exception occurred when reading a .db file: {}",
+							e1.getMessage());
+			}
+			Vector<DumpedFrame> dumpedFrames = DumpedFrame
+					.parseDumpFile(frames);
+
+			if (frames == null) {
+				break;
+			}
+
 			try {
 
-				publishProgress(row.getRawFile().getName()
+				publishProgress("["
+						+ (i + 1)
+						+ "/"
+						+ selectedRows.size()
+						+ "]: "
+						+ row.getRawFile().getName()
 						+ (" ("
 								+ StringTools.byteCountConverter(row
 										.getRawFile().length()) + ")"));
 
-				URL url = new URL(urls[0]);
+				for (int j = 0; j < dumpedFrames.size(); j += maxNoOfFrames) {
+					if (cancelled) {
+						break;
+					}
 
-				HttpsURLConnection connection = (HttpsURLConnection) url
-						.openConnection();
+					URL url = new URL(urls[0]);
 
-				String body = "sender="
-						+ URLEncoder.encode(getLoggerName(row), "UTF-8")
-						+ getFramesAsByte64(row);
+					HttpsURLConnection connection = (HttpsURLConnection) url
+							.openConnection();
 
-				((HttpURLConnection) connection).setRequestMethod("POST");
-				connection.setDoInput(true);
-				connection.setDoOutput(true);
-				connection.setUseCaches(false);
-				connection
-						.setRequestProperty(
-								"Authorization",
-								"Basic "
-										+ Base64.encodeToString(((userName
-												+ ":" + passWord).getBytes()),
-												Base64.DEFAULT));
-				connection.setRequestProperty("Content-Type",
-						"application/x-www-form-urlencoded");
-				connection.setRequestProperty("Content-Length",
-						String.valueOf(body.length()));
+					String body = "sender="
+							+ URLEncoder.encode(row.getName(), "UTF-8")
+							+ getFramesAsByte64(dumpedFrames, j);
 
-				OutputStreamWriter writer = new OutputStreamWriter(
-						connection.getOutputStream());
-				writer.write(body);
-				writer.flush();
+					((HttpURLConnection) connection).setRequestMethod("POST");
+					connection.setDoInput(true);
+					connection.setDoOutput(true);
+					connection.setUseCaches(false);
+					connection.setRequestProperty(
+							"Authorization",
+							"Basic "
+									+ Base64.encodeToString(
+											((userName + ":" + passWord)
+													.getBytes()),
+											Base64.DEFAULT));
+					connection.setRequestProperty("Content-Type",
+							"application/x-www-form-urlencoded");
+					connection.setRequestProperty("Content-Length",
+							String.valueOf(body.length()));
 
-				results[2][i + 1] = StringTools.httpCodeToString(connection
-						.getResponseCode());
+					OutputStreamWriter writer = new OutputStreamWriter(
+							connection.getOutputStream());
+					writer.write(body);
+					writer.flush();
 
+					results[2][i + 1] = StringTools.httpCodeToString(connection
+							.getResponseCode());
+				}
 			} catch (MalformedURLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				if (context.loggingEnabled())
+					LOG.warn("URL seems to be malformed: {}", e.getMessage());
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				if (context.loggingEnabled())
+					LOG.warn(
+							"An exception occured when trying to write to gateway: {}",
+							e.getMessage());
 			}
 
 		}
+
 		return null;
 	}
 
-	private String getFramesAsByte64(SelectableTableRow row) {
-		StringBuilder sb = new StringBuilder();
-		byte[] frames = ReadWriteFile.readFile(row.getRawFile());
-		Vector<DumpedFrame> dumpedFrames = DumpedFrame.parseDumpFile(frames);
+	private String getFramesAsByte64(Vector<DumpedFrame> dumpedFrames,
+			int offset) {
 
-		for (DumpedFrame frame : dumpedFrames) {
+		StringBuilder sb = new StringBuilder();
+
+		for (int i = offset; i < offset + maxNoOfFrames
+				&& i < dumpedFrames.size(); i++) {
+			DumpedFrame frame = dumpedFrames.get(i);
+
 			if (frame.getFrame() != null) {
 				sb.append("&bayeosframes[]=");
-				// TODO timestamp frame!
 
 				try {
 					sb.append(URLEncoder.encode(Base64.encodeToString(
 							(new TimestampFrame(frame)).asByteArray(),
 							Base64.NO_WRAP), "UTF-8"));
 				} catch (UnsupportedEncodingException e) {
-					Log.e(TAG, e.getMessage());
+					if (context.loggingEnabled())
+						LOG.warn("URL Encoding exception: {}", e.getMessage());
 				}
 			}
 
 		}
 
 		String res = sb.toString();
-//		res = res.replace("\r\n", "").replace("\n", "");
-		Log.i(TAG, res);
-		return res;
-	}
+		if (context.loggingEnabled())
+			LOG.info("Converted frames to URL & Base64 encoded String: {}", res);
 
-	private String getLoggerName(SelectableTableRow row) {
-		row.getName().split("_");
-		String dateFormat = "_yyyy_MM_dd_HH_mm_ss";
-		return (String) row.getName().subSequence(5,
-				row.getName().length() - dateFormat.length());
+		return res;
 	}
 
 	@Override
 	protected void onProgressUpdate(String... values) {
 		progress.setMessage(values[0]);
-		progress.incrementProgressBy(1);
 	}
 
 	@Override
 	protected void onPostExecute(Void result) {
+		//check if there are any cells with no http status code (-> no connection)
+		
+		for (int i = 0; i < results[0].length; i++){
+			if (results[2][i] == null || results[2][i].isEmpty())
+				results[2][i] = "No Connection?";
+		}
+		
+		
 		if (progress.isShowing()) {
 			progress.dismiss();
 		}
@@ -326,6 +374,45 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 			cancel.dismiss();
 
 		View table = TableCreator.createTable(results, context);
+
+		LinearLayout v1 = new LinearLayout(context);
+		final CheckBox deleteFiles = new CheckBox(context);
+		deleteFiles.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+		deleteFiles.setText("Delete file(s)");
+		deleteFiles.setChecked(true);
+		v1.addView(deleteFiles);
+
+		int dps = TableCreator.getDps(context, 5);
+		v1.setPadding(dps, dps / 2, dps / 2, dps / 2);
+
+		final LinearLayout v2 = new LinearLayout(context);
+		final CheckBox deleteCSV = new CheckBox(context);
+		deleteCSV.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+		deleteCSV.setText("Delete related CSV file (if existing)");
+		deleteCSV.setChecked(false);
+
+		v2.addView(deleteCSV);
+		MainActivity.enable(v2);
+
+		v2.setPadding(dps * 5, 0,0,0);
+
+		deleteFiles.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+
+			@Override
+			public void onCheckedChanged(CompoundButton buttonView,
+					boolean isChecked) {
+				if (isChecked)
+					MainActivity.enable(v2);
+				else
+					MainActivity.disable(v2);
+			}
+		});
+
+		if (deleteFiles != null && deleteCSV != null) {
+			table = TableCreator.combineViews(table, v1, context);
+			table = TableCreator.combineViews(table, v2, context);
+		}
+
 		new AlertDialog.Builder(context)
 				.setTitle("Upload Report")
 				.setView(table)
@@ -333,6 +420,10 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 						new DialogInterface.OnClickListener() {
 							public void onClick(DialogInterface dialog,
 									int which) {
+								if (deleteFiles.isChecked())
+									Dumps_DeleteDialog.deleteFiles(
+											selectedRows,
+											deleteCSV.isChecked(), context);
 							}
 						})
 

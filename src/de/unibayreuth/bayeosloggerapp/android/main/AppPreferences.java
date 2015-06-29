@@ -73,7 +73,15 @@ public class AppPreferences extends PreferenceFragment implements
 		if (p instanceof EditTextPreference) {
 			EditTextPreference editTextPref = (EditTextPreference) p;
 			if (p.getTitle().toString().contains("assword")) {
-				p.setSummary("******");
+				if (((EditTextPreference) p).getText().isEmpty())
+					p.setSummary("None");
+				else {
+					StringBuilder sb = new StringBuilder();
+					for (int i = 0; i < ((EditTextPreference) p).getText()
+							.length(); i++)
+						sb.append("*");
+					p.setSummary(sb.toString());
+				}
 			} else if (editTextPref.getText() != "") {
 				p.setSummary(editTextPref.getText());
 			} else {

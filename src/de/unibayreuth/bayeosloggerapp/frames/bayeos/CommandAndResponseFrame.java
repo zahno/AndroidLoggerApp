@@ -2,8 +2,10 @@ package de.unibayreuth.bayeosloggerapp.frames.bayeos;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Date;
 
 import de.unibayreuth.bayeosloggerapp.tools.DateAdapter;
+import de.unibayreuth.bayeosloggerapp.tools.NumberConverter;
 import de.unibayreuth.bayeosloggerapp.tools.StringTools;
 
 public class CommandAndResponseFrame extends Frame {
@@ -107,6 +109,19 @@ public class CommandAndResponseFrame extends Frame {
 		return new CommandAndResponseFrame(arg);
 	}
 
+	public static Frame command_setTime() {
+		byte[] arg = new byte[6];
+		arg[0] = frameType_Command;
+		arg[1] = BayEOS_SetTime;
+		long currentTimeInSeconds = DateAdapter.getSeconds(new Date());
+		byte[] ts = NumberConverter.toByte(currentTimeInSeconds, Number.UInt32);
+
+		for (int i = 0; i < ts.length; i++) {
+			arg[i + 2] = ts[i];
+		}
+		return new CommandAndResponseFrame(arg);
+	}
+
 	public static Frame command_setSamplingInterval(
 			CharSequence samplingInterval) {
 
@@ -185,12 +200,11 @@ public class CommandAndResponseFrame extends Frame {
 
 		return new CommandAndResponseFrame(arg);
 	}
-	
-	
-	public static Frame command_startLiveData(){
+
+	public static Frame command_startLiveData() {
 		return new CommandAndResponseFrame(new byte[] { frameType_Command,
 				BayEOS_StartLiveData });
-		
+
 	}
 
 	@Override
@@ -257,13 +271,16 @@ public class CommandAndResponseFrame extends Frame {
 			sb.append("Get Sampling Interval. ");
 			sb.append("Value: ");
 			Short[] interval = (Short[]) parsePayload(values, Number.Int16); // Short
-			sb.append(StringTools.arrayToHexString(interval));
+			sb.append(interval[0]);
 			break;
 		case (BayEOS_SetSamplingInt):
 			sb.append("Set Sampling Interval. ");
 			break;
 		case (BayEOS_TimeOfNextFrame):
-			sb.append("Time of Next Frame Sampling. ");
+			sb.append("Time of Next Frame. ");
+			Integer[] nextFrameTime = (Integer[]) parsePayload(values,
+					Number.Int32); // Integer
+			sb.append(DateAdapter.getDate(nextFrameTime[0]));
 			break;
 		case (BayEOS_StartLiveData):
 			sb.append("Start Live Data. ");

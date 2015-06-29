@@ -30,18 +30,19 @@ public class ToastMessage {
 		toast.show();
 	}
 
-	public static void toastSuccess(MainActivity mainActivity, String string) {
-		CharSequence text = "Success! " + string;
-		int duration = Toast.LENGTH_SHORT;
-		Toast toast = Toast.makeText(mainActivity, text, duration);
-		toast.setGravity(Gravity.BOTTOM | Gravity.CENTER, 0, 100);
-		toast.show();
-	}
 
-	public static void toastMessage(MainActivity mainActivity, String string) {
+	public static void toastMessageTop(MainActivity mainActivity, String string) {
 		int duration = Toast.LENGTH_SHORT;
 		Toast toast = Toast.makeText(mainActivity, string, duration);
 		toast.setGravity(Gravity.TOP | Gravity.CENTER, 0, 100);
+		toast.show();
+
+	}
+	
+	public static void toastMessageBottom(MainActivity mainActivity, String string) {
+		int duration = Toast.LENGTH_SHORT;
+		Toast toast = Toast.makeText(mainActivity, string, duration);
+		toast.setGravity(Gravity.BOTTOM | Gravity.CENTER, 0, 100);
 		toast.show();
 
 	}

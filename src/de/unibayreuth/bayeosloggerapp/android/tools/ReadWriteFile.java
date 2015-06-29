@@ -2,7 +2,6 @@ package de.unibayreuth.bayeosloggerapp.android.tools;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -11,9 +10,11 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.Vector;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import android.app.ProgressDialog;
 import android.os.Environment;
-import android.util.Log;
 
 import com.opencsv.CSVWriter;
 
@@ -22,6 +23,8 @@ import de.unibayreuth.bayeosloggerapp.frames.bayeos.DataFrame;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.DumpedFrame;
 
 public class ReadWriteFile {
+
+	private static Logger LOG = LoggerFactory.getLogger(ReadWriteFile.class);
 
 	public static File[] getFiles(String directoryPath) {
 
@@ -62,13 +65,13 @@ public class ReadWriteFile {
 		return arrayFiles;
 	}
 
-	public static byte[] readFile(File file) {
+	public static byte[] readFile(File file) throws IOException {
 
 		return readFile(file, null);
 	}
 
 	public static boolean saveCSV(Vector<DumpedFrame> dumpedFrames,
-			String fileName) {
+			String fileName) throws IOException {
 
 		return saveCSV(dumpedFrames, fileName, null, null);
 	}
@@ -82,53 +85,43 @@ public class ReadWriteFile {
 		return false;
 	}
 
-	public static byte[] readFile(File file, ProgressDialog binaryDumpProgress) {
+	public static byte[] readFile(File file, ProgressDialog binaryDumpProgress)
+			throws IOException {
 		FileInputStream fin = null;
 		byte[] fileContent = null;
-		try {
-			// create FileInputStream object
-			fin = new FileInputStream(file);
+		// create FileInputStream object
+		fin = new FileInputStream(file);
 
-			fileContent = new byte[(int) file.length()];
+		fileContent = new byte[(int) file.length()];
 
-			if (binaryDumpProgress != null) {
-				binaryDumpProgress.setIndeterminate(true);
-			}
-			// Reads up to certain bytes of data from this input stream into an
-			// array of bytes.
-			fin.read(fileContent);
-
-		} catch (FileNotFoundException e) {
-			System.out.println("File not found" + e);
-		} catch (IOException ioe) {
-			System.out.println("Exception while reading file " + ioe);
-		} finally {
-			// close the streams using close method
-			try {
-				if (fin != null) {
-					fin.close();
-				}
-			} catch (IOException ioe) {
-				System.out.println("Error while closing stream: " + ioe);
-			}
+		if (binaryDumpProgress != null) {
+			binaryDumpProgress.setIndeterminate(true);
 		}
+		// Reads up to certain bytes of data from this input stream into an
+		// array of bytes.
+		fin.read(fileContent);
+
+		// close the streams using close method
+		if (fin != null)
+			fin.close();
+
 		return fileContent;
 	}
 
 	public static boolean saveCSV(Vector<DumpedFrame> dumpedFrames,
-			String fileName, MainActivity context) {
+			String fileName, MainActivity context) throws IOException {
 		return saveCSV(dumpedFrames, fileName, null, context);
 	}
 
 	public static boolean saveCSV(Vector<DumpedFrame> dumpedFrames,
 			String fileName, final ProgressDialog binaryDumpProgress,
-			MainActivity context) {
+			MainActivity context) throws IOException {
 		boolean success = false;
 
-		
 		// check if available and not read only
 		if (!isExternalStorageWritable()) {
-			Log.w("FileUtils", "Storage not available or read only");
+			if (context.loggingEnabled())
+				LOG.warn("FileUtils", "Storage not available or read only");
 			return false;
 		}
 
@@ -154,47 +147,44 @@ public class ReadWriteFile {
 			file.delete();
 		}
 
-
 		String csv = file.getAbsolutePath();
 		CSVWriter writer;
-		try {
-			writer = new CSVWriter(new FileWriter(csv));
+		writer = new CSVWriter(new FileWriter(csv));
 
-			DumpedFrame frame;
-			String[] values = null;
-			for (int i = 0; i < dumpedFrames.size(); i++) {
-				if (binaryDumpProgress != null)
-					binaryDumpProgress.setProgress(i);
+		DumpedFrame frame;
+		String[] values = null;
+		for (int i = 0; i < dumpedFrames.size(); i++) {
+			values = null;
+			
+			if (binaryDumpProgress != null)
+				binaryDumpProgress.setProgress(i);
 
-				frame = dumpedFrames.get(i);
+			frame = dumpedFrames.get(i);
 
-				if (frame.getFrame() instanceof DataFrame) {
-					if (((DataFrame) frame.getFrame()).getValues() != null) {
+			if (frame.getFrame() instanceof DataFrame) {
+				if (((DataFrame) frame.getFrame()).getValues() != null) {
 
-						Set<Short> channels = ((DataFrame) frame.getFrame())
-								.getValues().keySet();
+					Set<Short> channels = ((DataFrame) frame.getFrame())
+							.getValues().keySet();
 
-						values = new String[channels.size() + 1];
+					values = new String[channels.size() + 1];
 
-						for (Short channel : channels) {
-							values[channel] = String.valueOf(((DataFrame) frame
-									.getFrame()).getValues().get(channel));
-						}
+					for (Short channel : channels) {
+						values[channel] = String.valueOf(((DataFrame) frame
+								.getFrame()).getValues().get(channel));
 					}
 				}
-
-				values[0] = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss",
-						Locale.US).format(frame.getTimestamp());
-				writer.writeNext(values);
-
 			}
+			if (values == null)
+				values = new String[1];
+			values[0] = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.US)
+					.format(frame.getTimestamp());
+			writer.writeNext(values);
 
-			writer.close();
-			success = true;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
+
+		writer.close();
+		success = true;
 
 		return success;
 	}

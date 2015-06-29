@@ -29,7 +29,7 @@ import de.unibayreuth.bayeosloggerapp.frames.bayeos.DataFrame;
 import de.unibayreuth.bayeosloggerapp.frames.serial.SerialFrame;
 
 public class LiveFragment extends Fragment {
-	private static final String TAG = "LiveFragment";
+	// private static final String TAG = "LiveFragment";
 
 	private ToggleButton toggleButton;
 	private LinearLayout linearLayout, linLay_charts;
@@ -39,7 +39,6 @@ public class LiveFragment extends Fragment {
 	private float labelTextSize;
 
 	private Hashtable<Short, TimeSeries> charts;
-
 
 	public LiveFragment() {
 	}
@@ -79,9 +78,11 @@ public class LiveFragment extends Fragment {
 					public void onCheckedChanged(CompoundButton buttonView,
 							boolean isChecked) {
 						if (isChecked) {
-							((MainActivity) getActivity()).addToQueue(SerialFrame.startLiveData);
+							((MainActivity) getActivity())
+									.addToQueue(SerialFrame.startLiveData);
 						} else {
-							((MainActivity) getActivity()).addToQueue(SerialFrame.modeStop);
+							((MainActivity) getActivity())
+									.addToQueue(SerialFrame.modeStop);
 						}
 					}
 				});
@@ -94,6 +95,11 @@ public class LiveFragment extends Fragment {
 		return view;
 	}
 
+	/**
+	 * Handles a new Data Frame received in live mode.
+	 * 
+	 * @param receivedFrame
+	 */
 	public void handle_DataFrame(DataFrame receivedFrame) {
 		Date date = new Date();
 		Set<Short> keys = receivedFrame.getValues().keySet();
@@ -104,6 +110,12 @@ public class LiveFragment extends Fragment {
 		refreshGraphs(linearLayout);
 	}
 
+	/**
+	 * Runs recursively through all children of a ViewGroup. If the child found
+	 * is a GraphicalView it will be repainted.
+	 * 
+	 * @param layout
+	 */
 	private static void refreshGraphs(ViewGroup layout) {
 		if (layout.getChildAt(0) instanceof GraphicalView) {
 			((GraphicalView) layout.getChildAt(0)).repaint();
@@ -120,6 +132,16 @@ public class LiveFragment extends Fragment {
 		}
 	}
 
+	/**
+	 * Adds a new value to the channel related graph.
+	 * 
+	 * @param date
+	 *            Date of the new value
+	 * @param channel
+	 *            Channel of the new value
+	 * @param value
+	 *            Value
+	 */
 	private void addNewValue(Date date, Short channel, Float value) {
 		if (!charts.containsKey(channel)) {
 
@@ -129,8 +151,6 @@ public class LiveFragment extends Fragment {
 
 			XYSeriesRenderer valuesRenderer = new XYSeriesRenderer();
 			valuesRenderer.setColor(Color.BLACK);
-			// valuesRenderer.setPointStyle(PointStyle.CIRCLE);
-			// valuesRenderer.setFillPoints(true);
 			valuesRenderer.setLineWidth(2);
 			valuesRenderer.setDisplayChartValues(true);
 
@@ -158,8 +178,8 @@ public class LiveFragment extends Fragment {
 
 			// Creating a Time Chart
 
-			GraphicalView mChart = ChartFactory.getTimeChartView(((MainActivity) getActivity()),
-					dataset, multiRenderer,
+			GraphicalView mChart = ChartFactory.getTimeChartView(
+					((MainActivity) getActivity()), dataset, multiRenderer,
 					"EEE',' dd.MM.yyyy '\nat' HH:mm:ss z");
 
 			multiRenderer.setClickEnabled(true);
@@ -187,6 +207,13 @@ public class LiveFragment extends Fragment {
 		BigDecimal bd = new BigDecimal(value);
 		bd = bd.setScale(places, RoundingMode.HALF_UP);
 		return bd.doubleValue();
+	}
+
+	public void resetView() {
+		charts = new Hashtable<>();
+
+		linLay_charts.removeAllViews();
+		linLay_charts.invalidate();
 	}
 
 	public void disableContent() {

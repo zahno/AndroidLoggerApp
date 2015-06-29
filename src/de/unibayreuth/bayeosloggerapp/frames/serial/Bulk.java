@@ -32,7 +32,7 @@ public class Bulk extends SerialFrame {
 
 	@Override
 	public String toString(){
-		return "*Bulk* \tOffset: "+offset+", Payload: "+StringTools.arrayToHexString(values);
+		return "Bulk with offset "+offset+". Payload: ["+StringTools.arrayToHexString(values)+"]";
 	}
 
 	public Vector<Byte> getValuesAsVector() {

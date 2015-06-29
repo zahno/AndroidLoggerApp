@@ -1,6 +1,7 @@
 package de.unibayreuth.bayeosloggerapp.android.tools;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -24,7 +25,7 @@ public class SelectableTableRow extends TableRow {
 	private String start, end;
 	private TextView tv_name, tv_start, tv_end, tv_records;
 
-	public SelectableTableRow(Context context, File rawFile) {
+	public SelectableTableRow(Context context, File rawFile) throws IOException {
 		super(context);
 		this.rawFile = rawFile;
 		this.setClickable(true);
@@ -73,17 +74,16 @@ public class SelectableTableRow extends TableRow {
 		return tv_records;
 	}
 
-	private void updateFileMetadata() {
+	private void updateFileMetadata() throws IOException {
 
 		byte[] readFile = ReadWriteFile.readFile(this.getRawFile());
 
 		Vector<DumpedFrame> dumpedFrames = DumpedFrame.parseDumpFile(readFile);
-
-		setStart(dumpedFrames.firstElement().getTimestamp());
-		setEnd(dumpedFrames.lastElement().getTimestamp());
-		setRecords(dumpedFrames.size());
-
-		// ReadWriteFile.readExcelFile(this);
+		if (dumpedFrames != null && !dumpedFrames.isEmpty()) {
+			setStart(dumpedFrames.firstElement().getTimestamp());
+			setEnd(dumpedFrames.lastElement().getTimestamp());
+			setRecords(dumpedFrames.size());
+		}
 	}
 
 	public boolean isSelected() {
@@ -181,6 +181,10 @@ public class SelectableTableRow extends TableRow {
 	public void deselect() {
 		unhighlight();
 		isSelected = false;
+	}
+	
+	public String toString(){
+		return "SelectableRow: "+rawFile.getName();
 	}
 
 }

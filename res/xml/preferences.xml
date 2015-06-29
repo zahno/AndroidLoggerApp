@@ -26,5 +26,13 @@
             android:key="path"
             android:title="Path" />
     </PreferenceCategory>
+    <PreferenceCategory android:title="Log" >
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="log"
+            android:summaryOff="@string/pref_logging_disabled"
+            android:summaryOn="@string/pref_logging_enabled"
+            android:title="@string/pref_logging_title" />
+    </PreferenceCategory>
 
 </PreferenceScreen>

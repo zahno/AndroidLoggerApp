@@ -6,9 +6,10 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingLeft="20dp"
-        android:paddingRight="20dp"
-        android:paddingTop="20dp" >
+        android:paddingBottom="15dp"
+        android:paddingLeft="15dp"
+        android:paddingRight="15dp"
+        android:paddingTop="15dp" >
 
         <Switch
             android:id="@+id/switch_logger_connect"
@@ -82,6 +83,14 @@
                 android:textColor="#44b66e"
                 android:textSize="14sp"
                 android:textStyle="bold" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dip"
+                android:layout_alignParentBottom="true"
+                android:layout_marginLeft="4dip"
+                android:layout_marginRight="4dip"
+                android:background="?android:attr/dividerVertical" />
         </RelativeLayout>
 
         <TableLayout
@@ -142,6 +151,7 @@
                     style="?android:attr/buttonBarStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/button"
                     android:maxHeight="45dp"
                     android:minHeight="45dp"
                     android:minWidth="60dp"
@@ -178,6 +188,7 @@
                     style="?android:attr/buttonBarStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/button"
                     android:maxHeight="45dp"
                     android:minHeight="45dp"
                     android:minWidth="60dp"
@@ -268,6 +279,8 @@
                     style="?android:attr/buttonBarStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="fill_parent"
+                    android:layout_marginTop="2dp"
+                    android:background="@drawable/button"
                     android:maxHeight="45dp"
                     android:minHeight="45dp"
                     android:minWidth="60dp"

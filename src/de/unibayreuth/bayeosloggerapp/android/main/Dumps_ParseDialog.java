@@ -1,7 +1,11 @@
 package de.unibayreuth.bayeosloggerapp.android.main;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Vector;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -21,13 +25,14 @@ import de.unibayreuth.bayeosloggerapp.frames.bayeos.DumpedFrame;
 import de.unibayreuth.bayeosloggerapp.tools.StringTools;
 
 public class Dumps_ParseDialog extends DialogFragment {
-	private static final String TAG = "Parse Dialog";
+	// private static final String TAG = "Parse Dialog";
+	// private Logger LOG = LoggerFactory.getLogger(Dumps_ParseDialog.class);
+
 	private String[][] files;
 	private String[][] alreadParsedFiles;
 	private Vector<SelectableTableRow> selectedrows;
 	private Vector<SelectableTableRow> alreadParsedRows;
 	private View rawTableView, parsedTableView;
-	
 
 	public Dumps_ParseDialog(Vector<SelectableTableRow> selectedRows,
 			Vector<SelectableTableRow> alreadyParsedRows, Context context) {
@@ -58,7 +63,8 @@ public class Dumps_ParseDialog extends DialogFragment {
 				alreadParsedFiles[1][i + 1] = alreadParsedRows.get(i)
 						.getParsedFile().getName();
 			}
-			this.parsedTableView = TableCreator.createTable(alreadParsedFiles, context);
+			this.parsedTableView = TableCreator.createTable(alreadParsedFiles,
+					context);
 		}
 
 		this.rawTableView = TableCreator.createTable(files, context);
@@ -71,26 +77,29 @@ public class Dumps_ParseDialog extends DialogFragment {
 		sb.append("Path: \n" + MainActivity.DirectoryNameParsed);
 		sb.append("\n\nFile(s):");
 
-		View v = TableCreator.addMessage(rawTableView, getActivity(), "The selected files are going to be converted and saved at: ",
+		View v = TableCreator.addMessage(rawTableView, getActivity(),
+				"The selected files are going to be converted and saved at: ",
 				new File(Environment.getExternalStorageDirectory(),
 						MainActivity.DirectoryNameParsed).getAbsolutePath());
 		View v2 = null;
-		if (parsedTableView != null){
-			v2 = TableCreator.addMessage(parsedTableView, getActivity(), "The following selected file(s) are already converted to CSV. Path:  ",
-					new File(Environment.getExternalStorageDirectory(),
-							MainActivity.DirectoryNameParsed).getAbsolutePath());
+		if (parsedTableView != null) {
+			v2 = TableCreator
+					.addMessage(
+							parsedTableView,
+							getActivity(),
+							"The following selected file(s) are already converted to CSV. Path:  ",
+							new File(Environment.getExternalStorageDirectory(),
+									MainActivity.DirectoryNameParsed)
+									.getAbsolutePath());
 
 		}
-		
-		if (v2 != null){
+
+		if (v2 != null) {
 			v = TableCreator.combineViews(v, v2, getActivity());
 		}
-		
-		
+
 		return new AlertDialog.Builder(getActivity())
-				.setTitle(
-						"Convert following " + selectedrows.size()
-								+ " file(s)?")
+				.setTitle("Convert " + selectedrows.size() + " file(s)?")
 				.setView(v)
 				.setPositiveButton(android.R.string.ok,
 						new DialogInterface.OnClickListener() {
@@ -121,7 +130,9 @@ public class Dumps_ParseDialog extends DialogFragment {
 
 class ConvertToCSV extends AsyncTask<Void, String, Void> {
 
-	private static final String TAG = "ConvertToCSV";
+	// private static final String TAG = "ConvertToCSV";
+	private Logger LOG = LoggerFactory.getLogger(ConvertToCSV.class);
+
 	private ProgressDialog progress, cancel;
 	private MainActivity context;
 	private Vector<SelectableTableRow> selectedRows;
@@ -138,6 +149,9 @@ class ConvertToCSV extends AsyncTask<Void, String, Void> {
 		this.results[1][0] = "Name";
 		this.results[2][0] = "Status";
 
+		if (context.loggingEnabled())
+			LOG.info("Converting files to CSV: {}", selectedrows.toString());
+
 	}
 
 	@Override
@@ -145,9 +159,10 @@ class ConvertToCSV extends AsyncTask<Void, String, Void> {
 
 		progress.setTitle("Converting " + selectedRows.size()
 				+ " file(s) to CSV...");
-		progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
 		this.progress.setMessage("");
-		progress.setMax(selectedRows.size());
+		progress.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+		progress.setIndeterminate(true);
+
 		progress.setCancelable(false);
 
 		progress.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel",
@@ -174,6 +189,8 @@ class ConvertToCSV extends AsyncTask<Void, String, Void> {
 	@Override
 	protected Void doInBackground(Void... params) {
 
+		Thread.currentThread().setName("AsyncTask ConvertToCSV");
+
 		SelectableTableRow row;
 		for (int i = 0; i < selectedRows.size(); i++) {
 			if (cancelled) {
@@ -182,25 +199,37 @@ class ConvertToCSV extends AsyncTask<Void, String, Void> {
 
 			row = selectedRows.get(i);
 
-			publishProgress(row.getRawFile().getName()
+			publishProgress("["
+					+ (i + 1)
+					+ "/"
+					+ selectedRows.size()
+					+ "]: "
+					+ row.getRawFile().getName()
 					+ (" ("
 							+ StringTools.byteCountConverter(row.getRawFile()
 									.length()) + ")"));
 
-			byte[] readFile = ReadWriteFile.readFile(row.getRawFile());
-			Vector<DumpedFrame> dumpedFrames = DumpedFrame
-					.parseDumpFile(readFile);
+			byte[] readFile;
+			try {
+				readFile = ReadWriteFile.readFile(row.getRawFile());
 
-			if (ReadWriteFile.saveCSV(dumpedFrames, row.getRawFile().getName()
-					.split("\\.")[0], context)) {
-				results[2][i + 1] = "Success";
-			} else
-				results[2][i + 1] = "Error";
-			row.addParsedFileInformation();
+				Vector<DumpedFrame> dumpedFrames = DumpedFrame
+						.parseDumpFile(readFile);
 
-			results[0][i + 1] = i + 1 + "";
-			results[1][i + 1] = row.getParsedFile().getName();
+				if (ReadWriteFile.saveCSV(dumpedFrames, row.getRawFile()
+						.getName().split("\\.")[0], context)) {
+					results[2][i + 1] = "Success";
+				} else
+					results[2][i + 1] = "Error";
+				row.addParsedFileInformation();
 
+				results[0][i + 1] = i + 1 + "";
+				results[1][i + 1] = row.getParsedFile().getName();
+			} catch (IOException e) {
+				if (context.loggingEnabled())
+					LOG.warn("An exception occured when converting to CSV: {}",
+							e.getMessage());
+			}
 		}
 		return null;
 	}
@@ -208,8 +237,6 @@ class ConvertToCSV extends AsyncTask<Void, String, Void> {
 	@Override
 	protected void onProgressUpdate(String... values) {
 		progress.setMessage(values[0]);
-		progress.incrementProgressBy(1);
-
 	}
 
 	@Override

@@ -270,4 +270,6 @@ public class SerialFrame {
 			return new SerialFrame(length, apiType, payload, checksum);
 
 	}
+
+
 }

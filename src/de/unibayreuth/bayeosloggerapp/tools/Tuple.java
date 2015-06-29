@@ -1,8 +1,9 @@
 package de.unibayreuth.bayeosloggerapp.tools;
 
+
 public class Tuple<X, Y> {
-	public final X x;
-	public final Y y;
+	public X x;
+	public Y y;
 
 	public Tuple(X x, Y y) {
 		this.x = x;
@@ -16,4 +17,13 @@ public class Tuple<X, Y> {
 	public Y getSecond() {
 		return y;
 	}
+
+	public void setFirst(X x) {
+		this.x = x;
+	}
+
+	public void setSecond(Y y) {
+		this.y = y;
+	}
+
 }

@@ -6,6 +6,8 @@ public class DateAdapter {
 
 	static long millisUntilMillenium = 946684800000L;
 
+	public static long fiveMinutesInSeconds = 5 * 60;
+
 	/*
 	 * @param d Date
 	 * 
@@ -25,6 +27,24 @@ public class DateAdapter {
 	 */
 	public static Date getDate(long seconds) {
 		return new Date(millisUntilMillenium + seconds * 1000);
+	}
+
+	/**
+	 * Returns true, if the difference between two dates is smaller than a given
+	 * number of seconds. False, if the difference is bigger.
+	 * 
+	 * @param dateA
+	 * @param dateB
+	 * @param differenceInSeconds
+	 * @return
+	 */
+	public static boolean differenceSmallerThan(Date dateA, Date dateB,
+			long differenceInSeconds) {
+
+		if (Math.abs((getSeconds(dateA) - getSeconds(dateB))) < differenceInSeconds) {
+			return true;
+		}
+		return false;
 	}
 
 }

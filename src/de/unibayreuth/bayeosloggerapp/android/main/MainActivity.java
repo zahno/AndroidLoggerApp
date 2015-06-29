@@ -3,18 +3,24 @@ package de.unibayreuth.bayeosloggerapp.android.main;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -28,11 +34,16 @@ import de.unibayreuth.bayeosloggerapp.frames.bayeos.DataFrame;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.Frame;
 import de.unibayreuth.bayeosloggerapp.frames.serial.Bulk;
 import de.unibayreuth.bayeosloggerapp.frames.serial.SerialFrame;
+import de.unibayreuth.bayeosloggerapp.tools.StringTools;
 import de.unibayreuth.bayeosloggerapp.tools.Tuple;
 
 public class MainActivity extends AppCompatActivity {
 
-	private static final String TAG = "Main Activity";
+	// private static final String TAG = "Main Activity";
+
+	private Logger LOG = LoggerFactory.getLogger(MainActivity.class);
+	private boolean loggingenabled = false;
+
 	private static D2xxManager ftD2xx = null;
 	private FT_Device ftDev;
 	private boolean deviceConnected = false;
@@ -55,15 +66,26 @@ public class MainActivity extends AppCompatActivity {
 	public static final String DirectoryNameRaw = "BayEOS_Logger//Raw_Dumps";
 	public static final String DirectoryNameParsed = "BayEOS_Logger//Parsed_Dumps";
 
+	/**
+	 * This method is called on create of the application.
+	 * 
+	 * @author Christiane Goehring
+	 */
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
+		setLoggingPreference();
+
+		if (loggingenabled)
+			LOG.info("======== BayEOS Logger App started ========");
+
 		try {
 			ftD2xx = D2xxManager.getInstance(this);
 		} catch (D2xxManager.D2xxException ex) {
-			Log.e(TAG, ex.toString());
+			if (loggingenabled)
+				LOG.error(ex.getMessage());
 		}
 
 		// add filters for usb attached and detached
@@ -111,8 +133,20 @@ public class MainActivity extends AppCompatActivity {
 					}
 				});
 
+		getSupportActionBar().setIcon(R.drawable.ic_launcher);
+		getSupportActionBar().setTitle(
+				"  " + getResources().getString(R.string.app_name));
+		getSupportActionBar().setDisplayUseLogoEnabled(true);
+		getSupportActionBar().setDisplayShowHomeEnabled(true);
+
 	}
 
+	/**
+	 * This method creates the "..." menu in the upper right corner of the
+	 * application
+	 * 
+	 * @author Christiane Goehring
+	 */
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu items for use in the action bar
@@ -121,33 +155,46 @@ public class MainActivity extends AppCompatActivity {
 		return super.onCreateOptionsMenu(menu);
 	}
 
-	// @Override
-	// public boolean onOptionsItemSelected(MenuItem item) {
-	// // Handle presses on the action bar items
-	// switch (item.getItemId()) {
-	//
-	// case R.id.action_settings:
-	// openSettings();
-	// return true;
-	// default:
-	// return super.onOptionsItemSelected(item);
-	// }
-	// }
+	/**
+	 * This method is calles when the user taps on an item of the "..." menu in
+	 * the upper right
+	 * 
+	 * @author Christiane Goehring
+	 */
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle presses on the action bar items
+		switch (item.getItemId()) {
 
-	// private void openSettings() {
-	// getSupportFragmentManager().beginTransaction().replace(android.R.id.content,
-	// new AppPreferences()).commit();
-	// }
+		case R.id.action_info:
+			openInfo();
+			return true;
+		default:
+			return super.onOptionsItemSelected(item);
+		}
+	}
 
-	// @Override
-	// public void onBackPressed() {
-	// if (getSupportFragmentManager().getBackStackEntryCount() != 0) {
-	// getSupportFragmentManager().popBackStack();
-	// } else {
-	// super.onBackPressed();
-	// }
-	// }
+	/**
+	 * Called when the info-dialog is opened
+	 * 
+	 * @author Christiane Goehring
+	 */
+	private void openInfo() {
 
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setMessage(R.string.info).setTitle("About");
+
+		AlertDialog alert = builder.create();
+		alert.show();
+
+	}
+
+	/**
+	 * Called when the application is being destroyed. Unregisters the Broadcast
+	 * Receiver and closes the connection to the logger-device.
+	 * 
+	 * @author Christiane Goehring
+	 */
 	@Override
 	protected void onDestroy() {
 		unregisterReceiver(mUsbReceiver);
@@ -155,6 +202,12 @@ public class MainActivity extends AppCompatActivity {
 		super.onDestroy();
 	};
 
+	/**
+	 * Opens the connection to the logger-device
+	 * 
+	 * @return True, if connected successfully. False otherwise.
+	 * @author Christiane Goehring
+	 */
 	boolean openDevice() {
 		// device was already opened once
 		if (ftDev != null) {
@@ -164,10 +217,15 @@ public class MainActivity extends AppCompatActivity {
 					setDeviceConfig();
 					setDeviceConnected(true);
 					loggerFragment.initializeLoggerData();
+
 					new Thread(readLoop).start();
 					new Thread(writeLoop).start();
 
+					loggerFragment.resetView();
+
+					liveFragment.resetView();
 					liveFragment.enableContent();
+
 					return true;
 				}
 				// already open
@@ -177,8 +235,6 @@ public class MainActivity extends AppCompatActivity {
 
 		int devCount = 0;
 		devCount = ftD2xx.createDeviceInfoList(this);
-
-		// Log.d(TAG, "Device Number: " + Integer.toString(devCount));
 
 		D2xxManager.FtDeviceInfoListNode[] deviceList = new D2xxManager.FtDeviceInfoListNode[devCount];
 		ftD2xx.getDeviceInfoList(devCount, deviceList);
@@ -204,13 +260,22 @@ public class MainActivity extends AppCompatActivity {
 				new Thread(readLoop).start();
 				new Thread(writeLoop).start();
 
+				loggerFragment.resetView();
+
 				liveFragment.enableContent();
+				liveFragment.resetView();
+
 				return true;
 			}
 		}
 		return false;
 	}
 
+	/**
+	 * Sets the configuration for the logger-device
+	 * 
+	 * @author Christiane Goehring
+	 */
 	private void setDeviceConfig() {
 		if (ftDev.isOpen() == false) {
 			return;
@@ -231,16 +296,30 @@ public class MainActivity extends AppCompatActivity {
 
 	}
 
+	/**
+	 * Closes the connection to the logger-device
+	 * 
+	 * @author Christiane Goehring
+	 */
 	public void closeDevice() {
 		deviceConnected = false;
+		triggerModeStop();
 		liveFragment.disableContent();
 
 		if (ftDev != null) {
 			ftDev.close();
 			ToastMessage.toastDisconnected(this);
 		}
+
 	}
 
+	/**
+	 * This is the Broadcast Receiver that makes it possible to detect when a
+	 * USB device is attached and ask whether this app should open or not. Also,
+	 * when the USB is detached, the connection closes.
+	 * 
+	 * @author Christiane Goehring
+	 */
 	BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
@@ -259,6 +338,11 @@ public class MainActivity extends AppCompatActivity {
 		}
 	};
 
+	/**
+	 * Adds a new frame to the queue of messages to be sent to the logger
+	 * 
+	 * @author Christiane Goehring
+	 */
 	protected void addToQueue(byte[] serialFrame) {
 
 		try {
@@ -267,16 +351,27 @@ public class MainActivity extends AppCompatActivity {
 			}
 			writeQueue.put(serialFrame);
 		} catch (InterruptedException e) {
-			Log.e(TAG, "Could not add new frame to queue: " + e.getMessage());
+			if (loggingenabled)
+				LOG.warn("Failed to add SerialFrame to Writing-Queue: {}",
+						e.getMessage());
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * This is the Read Thread. As long as a device is connected this thread
+	 * reads bytes sent by the logger and builds frames out of them. If there
+	 * are no bytes in the reading-buffer then the Write Loop is notified.
+	 * 
+	 * 
+	 * @author Christiane Goehring
+	 */
 	private Runnable readLoop = new Runnable() {
 
 		@Override
 		public void run() {
 			boolean escaped = true;
+			Thread.currentThread().setName("Read Thread");
 
 			while (true) {
 
@@ -285,19 +380,21 @@ public class MainActivity extends AppCompatActivity {
 				}
 
 				synchronized (ftDev) {
+					// check if in dump mode and dump was interrupted
 					if (loggerFragment.dumpInterrupted()) {
 						int writtenBytes = ftDev.write(SerialFrame.modeStop);
-						Log.i(TAG, "wrote Ddum");
+						if (loggingenabled)
+							LOG.info("Wrote 'modeStop' to device.");
 						if (writtenBytes != SerialFrame.modeStop.length)
 							while (writtenBytes != SerialFrame.modeStop.length) {
 								writtenBytes = ftDev
 										.write(SerialFrame.modeStop);
-								Log.i(TAG,
-										"wrote Dump Interrupted again: Couldn't write whole frame to device");
+								if (loggingenabled)
+									LOG.info("Wrote 'modeStop' again (Couldn't write frame to device)");
 							}
 					}
 
-					// Frame Delimiter
+					// Search for the Frame Delimiter
 					Tuple<Integer, Byte> delimiter;
 					do {
 						delimiter = readByte(!escaped);
@@ -305,32 +402,32 @@ public class MainActivity extends AppCompatActivity {
 							break;
 					} while (delimiter.getSecond() != 0x7e);
 
-					// case: no new message received (count received bytes = 0)
 					if (delimiter.getFirst() == 0) {
 						messageReceived = false;
-						// Log.i(TAG,
-						// "Readthread: No new message received! Notify writeThread");
 						try {
 							ftDev.notify();
 							ftDev.wait();
 						} catch (InterruptedException e) {
-							Log.e(TAG,
-									"Wait in readLoop failed! "
-											+ e.getMessage());
+							if (loggingenabled)
+								LOG.warn("Wait in readLoop failed: {}"
+										+ e.getMessage());
 							e.printStackTrace();
 						}
 						continue;
 					}
 
+					// Found the start of a new frame
+
 					messageReceived = true;
 
+					StringBuilder sb = new StringBuilder();
+					sb.append("Received new frame! ");
 					// Length
 					byte length = readByte(escaped).getSecond();
-					// Log.i(TAG, "Length: " + length);
+					sb.append("[Length: " + length + "] ");
 
 					// API Type
 					byte apiType = readByte(escaped).getSecond();
-					// Log.i(TAG, "API Type: " + apiType);
 
 					// Payload
 					byte[] payload = new byte[length];
@@ -338,35 +435,36 @@ public class MainActivity extends AppCompatActivity {
 						payload[i] = readByte(escaped).getSecond();
 					}
 
-					// StringBuilder sb = new StringBuilder();
-					// sb.append("Payload: [");
-					// sb.append(String.format("%02X", payload[0]));
-					// for (int i = 1; i < length; i++) {
-					// sb.append(", ");
-					// sb.append(String.format("%02X", payload[i]));
-					// }
-					// sb.append("]");
-					// Log.i(TAG, sb.toString());
-
 					byte checksum = readByte(escaped).getSecond();
 
+					// Check if checksum correct
 					if (checksum == SerialFrame.calculateChecksum(apiType,
 							payload)) {
 
+						// Is the received frame an ACK frame?
 						if (payload.length == 1 && payload[0] == 0x1) {
-							// Log.i(TAG, "Ack Frame received");
-						} else {
-							// Log.i(TAG, "New frame received!");
+							if (loggingenabled)
+								LOG.info("Received ACK");
+
+						}
+						// otherwise
+						else {
+							if (loggingenabled)
+								LOG.info(sb.toString());
+
 							int writtenBytes = ftDev
 									.write(SerialFrame.ACK_FRAME);
-							Log.i(TAG, "wrote ACK");
+
+							if (loggingenabled)
+								LOG.info("Wrote ACK");
+
 							if (writtenBytes != SerialFrame.ACK_FRAME.length)
 								while (writtenBytes != SerialFrame.ACK_FRAME.length) {
 									writtenBytes = ftDev
 											.write(SerialFrame.ACK_FRAME);
-									Log.i(TAG, "wrote ACK again: Couldn't write whole frame to device");
+									LOG.info("Wrote ACK again (Couldn't write frame to device)");
 								}
-//							ftDev.write(SerialFrame.ACK_FRAME);
+							// ftDev.write(SerialFrame.ACK_FRAME);
 							handleSerialFrame(SerialFrame.toSerialFrame(length,
 									apiType, payload, checksum));
 						}
@@ -379,10 +477,19 @@ public class MainActivity extends AppCompatActivity {
 			}
 		}
 
+		/**
+		 * Reads a single byte from the read buffer
+		 * 
+		 * @param byteEscaped
+		 *            Is the byte possible escaped?
+		 * @return The next byte of the read buffer
+		 * 
+		 * @author Christiane Goehring
+		 */
 		private Tuple<Integer, Byte> readByte(boolean byteEscaped) {
 
 			int bytesToRead = 1;
-			int receivedBytes = ftDev.read(rbuf, bytesToRead, 50);
+			int receivedBytes = ftDev.read(rbuf, bytesToRead, 200);
 
 			if (receivedBytes != 0) {
 
@@ -399,19 +506,40 @@ public class MainActivity extends AppCompatActivity {
 		}
 	};
 
+	/**
+	 * Handles Serial Frames
+	 * 
+	 * @param serialFrame
+	 *            A Serial Frame sent by the logger
+	 * 
+	 * @author Christiane Goehring
+	 */
 	protected void handleSerialFrame(SerialFrame serialFrame) {
 
+		// Is the frame a Bulk frame (a frame that is sent when dump mode is
+		// activated)
 		if (serialFrame instanceof Bulk) {
 			loggerFragment.handleBulk((Bulk) serialFrame);
 
-		} else
+		}
+		// otherwise
+		else
 			handlePayload(serialFrame.getPayload());
 	}
 
+	/**
+	 * This method handles the payload of a Serial Frame.
+	 * 
+	 * @param payload
+	 * 
+	 * @author Christiane Goehring
+	 */
 	protected void handlePayload(byte[] payload) {
 		final Frame receivedFrame = Frame.toBayEOSFrame(payload);
 		if (receivedFrame != null)
-			Log.i(TAG, receivedFrame.toString());
+			if (loggingenabled)
+				LOG.info("Received Frame contains: [{}]",
+						receivedFrame.toString());
 		mHandler.post(new Runnable() {
 
 			@Override
@@ -477,12 +605,7 @@ public class MainActivity extends AppCompatActivity {
 						liveDataStarted = true;
 						break;
 					case (CommandAndResponseFrame.BayEOS_ModeStop):
-						if (liveDataStarted) {
-							liveFragment.getToggleButton().setChecked(false);
-							liveDataStarted = false;
-						}
-						loggerFragment.setDumpInterrupted(false);
-
+						triggerModeStop();
 						break;
 					case (CommandAndResponseFrame.BayEOS_Seek):
 						break;
@@ -498,7 +621,7 @@ public class MainActivity extends AppCompatActivity {
 							break;
 						case (CommandAndResponseFrame.BayEOS_BufferCommand_GetReadPosition):
 							loggerFragment
-									.handle_BuferCommand_GetReadPosition((CommandAndResponseFrame) receivedFrame);
+									.handle_BufferCommand_GetReadPosition((CommandAndResponseFrame) receivedFrame);
 
 							break;
 						case (CommandAndResponseFrame.BayEOS_BufferCommand_GetWritePosition):
@@ -512,8 +635,8 @@ public class MainActivity extends AppCompatActivity {
 						case (CommandAndResponseFrame.BayEOS_BufferCommand_SetReadPointerToLastEEPROMPosition):
 							break;
 						default:
-							Log.e(TAG,
-									"Received Buffer Command Answer but no command was sent");
+							if (loggingenabled)
+								LOG.info("Received Buffer Command Answer but no command was sent");
 						}
 						bufferCommand = null;
 
@@ -527,10 +650,36 @@ public class MainActivity extends AppCompatActivity {
 
 	}
 
+	/**
+	 * 
+	 * Resets the values related to the "mode stop" command
+	 * 
+	 * @author Christiane Goehring
+	 */
+	protected void triggerModeStop() {
+		if (liveDataStarted) {
+			ToastMessage.toastMessageBottom(this, "Live Mode stopped");
+
+			liveFragment.getToggleButton().setChecked(false);
+			liveDataStarted = false;
+		} else if (loggerFragment.dumpInterrupted()) {
+			loggerFragment.setDumpInterrupted(false);
+			ToastMessage.toastMessageBottom(this, "Dump stopped");
+		}
+	}
+
+	/**
+	 * This is the Write Thread. As long as a device is connected this thread
+	 * sends bytes from the writeQueue to the logger. If there are no elements
+	 * in the writeQueue the Read Thread is notified.
+	 * 
+	 */
 	private Runnable writeLoop = new Runnable() {
 
 		@Override
 		public void run() {
+
+			Thread.currentThread().setName("Write Thread");
 
 			while (true) {
 
@@ -542,15 +691,12 @@ public class MainActivity extends AppCompatActivity {
 
 					if (messageReceived) {
 						try {
-							// Log.i(TAG,
-							// "Writethread: received Message true, so notify and wait");
 							ftDev.notify();
 							ftDev.wait();
 						} catch (InterruptedException e) {
-							Log.e(TAG,
-									"Wait in writeLoop failed! "
-											+ e.getMessage());
-							e.printStackTrace();
+							if (loggingenabled)
+								LOG.warn("Wait in writeLoop failed! {} ",
+										e.getMessage());
 						}
 					}
 
@@ -559,24 +705,25 @@ public class MainActivity extends AppCompatActivity {
 
 						try {
 							byte[] current = writeQueue.take();
+							if (loggingenabled)
+								LOG.info("Wrote [{}] to device.",
+										StringTools.arrayToHexString(current));
 							ftDev.write(current);
-							// Log.i(TAG,
-							// "Writethread: no new message, so send message from queue");
 							ftDev.notify();
 							ftDev.wait();
 						} catch (InterruptedException e) {
-							Log.e(TAG,
-									"Wait in writeLoop failed! "
-											+ e.getMessage());
-							e.printStackTrace();
+							if (loggingenabled)
+								LOG.warn("Wait in writeLoop failed! {} ",
+										e.getMessage());
 						}
 					} else {
 						try {
 							ftDev.notify();
 							ftDev.wait();
 						} catch (InterruptedException e) {
-							Log.e(TAG, writeLoop + e.getMessage());
-							e.printStackTrace();
+							if (loggingenabled)
+								LOG.warn("Wait in writeLoop failed! {} ",
+										e.getMessage());
 						}
 					}
 				}
@@ -585,14 +732,30 @@ public class MainActivity extends AppCompatActivity {
 		}
 	};
 
+	/**
+	 * Enables the contents of a ViewGroup
+	 * 
+	 * @param layout
+	 */
 	public static void enable(ViewGroup layout) {
 		enOrDisable(layout, true);
 	}
 
+	/**
+	 * Disables the contents of a ViewGroup
+	 * 
+	 * @param layout
+	 */
 	public static void disable(ViewGroup layout) {
 		enOrDisable(layout, false);
 	}
 
+	/**
+	 * Dis- or enables the contents of a ViewGroup.
+	 * 
+	 * @param layout
+	 * @param enable
+	 */
 	private static void enOrDisable(ViewGroup layout, boolean enable) {
 		layout.setEnabled(enable);
 		for (int i = 0; i < layout.getChildCount(); i++) {
@@ -605,64 +768,152 @@ public class MainActivity extends AppCompatActivity {
 		}
 	}
 
-	protected void removeFromQueue(byte[] serialFrame) {
-		writeQueue.remove(serialFrame);
+	/**
+	 * Removes an item from the writeQueue
+	 * 
+	 * @param serialFrame
+	 */
+	protected boolean removeFromQueue(byte[] serialFrame) {
+		return writeQueue.remove(serialFrame);
 	}
 
+	/**
+	 * @return Returns the logger-device
+	 */
 	public FT_Device getDevice() {
 		return ftDev;
 	}
 
+	/**
+	 * Sets the logger-device
+	 * 
+	 * @param dev
+	 *            Logger
+	 */
 	public void setDevice(FT_Device dev) {
 		this.ftDev = dev;
 	}
 
+	/**
+	 * 
+	 * @return returns the device manager
+	 */
 	public D2xxManager getD2xxManager() {
 		return ftD2xx;
 	}
+
+	/**
+	 * 
+	 * @return True, if a device is connected. False otherwise.
+	 */
 
 	public boolean deviceConnected() {
 		return deviceConnected;
 	}
 
+	/**
+	 * Sets if a device is connected
+	 * 
+	 * @param b
+	 */
 	public void setDeviceConnected(boolean b) {
 		deviceConnected = b;
 	}
 
+	/**
+	 * 
+	 * @return The Logger Fragment
+	 */
 	public LoggerFragment getLoggerFragment() {
 		return loggerFragment;
 	}
 
+	/**
+	 * Sets the Logger Fragment
+	 * 
+	 * @param loggerFragment
+	 */
 	public void setLoggerFragment(LoggerFragment loggerFragment) {
 		this.loggerFragment = loggerFragment;
 	}
 
+	/**
+	 * 
+	 * @return The Dump Fragment
+	 */
 	public DumpsFragment getDumpsFragment() {
 		return dumpsFragment;
 	}
 
+	/**
+	 * Sets the Dump Fragment
+	 * 
+	 * @param dumpsFragment
+	 */
 	public void setDumpsFragment(DumpsFragment dumpsFragment) {
 		this.dumpsFragment = dumpsFragment;
 	}
 
+	/**
+	 * 
+	 * @return The Live Fragment
+	 */
 	public LiveFragment getLiveFragment() {
 		return liveFragment;
 	}
 
+	/**
+	 * Sets the Live Fragment
+	 * 
+	 * @param liveFragment
+	 */
 	public void setLiveFragment(LiveFragment liveFragment) {
 		this.liveFragment = liveFragment;
 	}
 
+	/**
+	 * Sets the current Buffer Command so we can track what Buffer Command is
+	 * expected
+	 * 
+	 * @param expectedBufferCommand
+	 */
 	public void setBufferCommand(byte expectedBufferCommand) {
 		this.bufferCommand = expectedBufferCommand;
 	}
 
+	/**
+	 * Sets the Preference Fragment
+	 * 
+	 * @param appPreferences
+	 */
 	public void setPreferenceFragment(AppPreferences appPreferences) {
 		this.appPreferences = appPreferences;
 	}
 
+	/**
+	 * 
+	 * @return The Preference Fragment
+	 */
 	public AppPreferences getPreferenceFragment() {
 		return appPreferences;
+	}
+
+	/**
+	 * Sets whether or not the user allowed to write application output into a
+	 * log file by checking the set preference
+	 */
+	private void setLoggingPreference() {
+		SharedPreferences p = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		this.loggingenabled = p.getBoolean("log", false);
+	}
+
+	/**
+	 * 
+	 * @return Whether the user enabled logging in the preferences
+	 */
+	public boolean loggingEnabled() {
+		return this.loggingenabled;
 	}
 
 }

@@ -1,17 +1,16 @@
 package de.unibayreuth.bayeosloggerapp.frames.bayeos;
 
-import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Hashtable;
+import java.util.Set;
 
-import android.util.Log;
 import de.unibayreuth.bayeosloggerapp.tools.NumberConverter;
 
 public class DataFrame extends Frame {
 
-	public static final String TAG = "DataFrame";
-	
+	// private static final String TAG = "DataFrame";
+
 	private byte dataFrameType;
 	private Frame.Number valueType;
 	private Hashtable<Short, Float> values;
@@ -19,12 +18,14 @@ public class DataFrame extends Frame {
 	public DataFrame(byte[] payload) {
 
 		super(payload);
-		try{
 		ByteBuffer bf_payload = ByteBuffer.wrap(payload);
 		bf_payload.order(ByteOrder.LITTLE_ENDIAN);
 
 		// second byte of payload
 		bf_payload.position(1);
+		if (!bf_payload.hasRemaining())
+			return;
+
 		byte valueType = bf_payload.get();
 
 		// check first digit of the value type for dataframe type
@@ -68,10 +69,8 @@ public class DataFrame extends Frame {
 		}
 		this.values = values;
 		this.valueType = type;
-		this.dataFrameType = dm;}
-		catch(BufferUnderflowException e){
-			Log.e(TAG, "Buffer Underflow Exception");
-		}
+		this.dataFrameType = dm;
+
 	}
 
 	@Override
@@ -99,12 +98,20 @@ public class DataFrame extends Frame {
 		default:
 			break;
 		}
-		return "Type: Data Frame \tValue Type:\t" + valtype
-				+ "\t\tChannel = Value: " + values;
+		StringBuilder sb = new StringBuilder();
+		Set<Short> keys = values.keySet();
+		for (Short channel : keys) {
+			sb.append("[Channel " + channel + ": " + values.get(channel) + "] ");
+		}
+		return "Data Frame with Value Type " + valtype + sb.toString();
 	}
 
 	public Hashtable<Short, Float> getValues() {
 		return values;
+	}
+
+	public byte getType() {
+		return dataFrameType;
 	}
 
 }
