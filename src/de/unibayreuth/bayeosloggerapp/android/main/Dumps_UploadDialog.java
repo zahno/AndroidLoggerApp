@@ -143,7 +143,7 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 	private boolean cancelled;
 	private MainActivity context;
 
-	private final static int maxNoOfFrames = 10000;
+	private final static int maxNoOfFrames = 5000;
 
 	public UploadDataToGateway(MainActivity activity,
 			Vector<SelectableTableRow> selectedrows, String userName,
@@ -275,8 +275,7 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 
 					URL url = new URL(urls[0]);
 
-					HttpsURLConnection connection = (HttpsURLConnection) url
-							.openConnection();
+					java.net.URLConnection connection = url.openConnection();
 
 					String body = "sender="
 							+ URLEncoder.encode(row.getName(), "UTF-8")
@@ -303,7 +302,7 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 					writer.write(body);
 					writer.flush();
 
-					results[2][i + 1] = StringTools.httpCodeToString(connection
+					results[2][i + 1] = StringTools.httpCodeToString(((HttpURLConnection) connection)
 							.getResponseCode());
 				}
 			} catch (MalformedURLException e) {
@@ -359,14 +358,14 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 
 	@Override
 	protected void onPostExecute(Void result) {
-		//check if there are any cells with no http status code (-> no connection)
-		
-		for (int i = 0; i < results[0].length; i++){
+		// check if there are any cells with no http status code (-> no
+		// connection)
+
+		for (int i = 0; i < results[0].length; i++) {
 			if (results[2][i] == null || results[2][i].isEmpty())
 				results[2][i] = "No Connection?";
 		}
-		
-		
+
 		if (progress.isShowing()) {
 			progress.dismiss();
 		}
@@ -394,7 +393,7 @@ class UploadDataToGateway extends AsyncTask<String, String, Void> {
 		v2.addView(deleteCSV);
 		MainActivity.enable(v2);
 
-		v2.setPadding(dps * 5, 0,0,0);
+		v2.setPadding(dps * 5, 0, 0, 0);
 
 		deleteFiles.setOnCheckedChangeListener(new OnCheckedChangeListener() {
 
