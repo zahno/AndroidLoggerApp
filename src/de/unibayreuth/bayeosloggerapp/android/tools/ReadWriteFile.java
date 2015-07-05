@@ -87,6 +87,9 @@ public class ReadWriteFile {
 
 	public static byte[] readFile(File file, ProgressDialog binaryDumpProgress)
 			throws IOException {
+
+		LOG.info("Reading file: " + file.getName());
+
 		FileInputStream fin = null;
 		byte[] fileContent = null;
 		// create FileInputStream object
@@ -155,7 +158,7 @@ public class ReadWriteFile {
 		String[] values = null;
 		for (int i = 0; i < dumpedFrames.size(); i++) {
 			values = null;
-			
+
 			if (binaryDumpProgress != null)
 				binaryDumpProgress.setProgress(i);
 

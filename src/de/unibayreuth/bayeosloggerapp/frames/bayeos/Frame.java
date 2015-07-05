@@ -104,7 +104,7 @@ public class Frame {
 	}
 
 	public static Frame toBayEOSFrame(byte[] payload) {
-		if (payload.length == 0)
+		if (payload == null || payload.length == 0)
 			return null;
 
 		byte frameType = payload[0];

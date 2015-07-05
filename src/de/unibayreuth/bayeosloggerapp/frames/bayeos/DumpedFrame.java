@@ -5,15 +5,20 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Vector;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import android.app.ProgressDialog;
-import android.util.Log;
 import de.unibayreuth.bayeosloggerapp.frames.bayeos.Frame.Number;
 import de.unibayreuth.bayeosloggerapp.tools.DateAdapter;
 
 public class DumpedFrame {
-	Date timestamp;
-	byte length;
-	Frame frame;
+	private Date timestamp;
+	private byte length;
+	private Frame frame;
+	
+	private static Logger LOG = LoggerFactory.getLogger(DumpedFrame.class);
+
 
 	public DumpedFrame(byte[] data) {
 		byte[] time = new byte[4];
@@ -59,6 +64,14 @@ public class DumpedFrame {
 		return timestamp;
 	}
 
+	public byte getLength() {
+		return length;
+	}
+
+	public void setLength(byte length) {
+		this.length = length;
+	}
+
 	public static Vector<DumpedFrame> parseDumpFile(byte[] rawDumpData,
 			ProgressDialog binaryDumpProgress) {
 		Vector<DumpedFrame> frames = new Vector<DumpedFrame>();
@@ -82,10 +95,17 @@ public class DumpedFrame {
 					.parsePayload(time, Number.Int32))[0]);
 
 			length = rawDumpData[i + 4];
+			
+			//Something really bad happened. File must be broken! 
+			if (length < 1){
+				LOG.warn("Corrupt file? The length of a frame must be greater than 1! Abort parsing.");
+				break;
+				}
+			
 			byte[] subframe = new byte[length];
 
 			if (length > rawDumpData.length - i - 4) {
-				Log.i("DumpedFrame", "Wrong bulk length");
+				LOG.warn("Corrupt file? The length of the frame exceeds the length of the bulk! Abort parsing.");
 				break;
 			}
 
